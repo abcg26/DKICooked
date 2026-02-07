@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.utils.Array;
 
 public class PlayerActor extends Actor {
 
@@ -26,6 +27,7 @@ public class PlayerActor extends Actor {
     private boolean isCharging = false;
     private boolean isGrounded = true;
     private boolean wasSpacePressed = false; // Track previous frame state
+    private Platform currentPlatform = null;
 
     private final float groundY = 100f; // temporary ground
 
@@ -77,6 +79,52 @@ public class PlayerActor extends Actor {
 
         // Update previous frame state
         wasSpacePressed = spacePressed;
+    }
+
+    public void checkPlatformCollision(Array<Platform> platforms) {
+        if (velocityY > 0) {
+            // Don't check collision when moving upward
+            isGrounded = false;
+            currentPlatform = null;
+            return;
+        }
+
+        for (Platform platform : platforms) {
+            if (checkCollisionWithPlatform(platform)) {
+                velocityY = 0f;
+                isGrounded = true;
+                currentPlatform = platform;
+                return;
+            }
+        }
+
+        isGrounded = false;
+        currentPlatform = null;
+    }
+
+    private boolean checkCollisionWithPlatform(Platform platform) {
+        // Check if player is falling onto platform
+        float playerBottom = getY();
+        float playerLeft = getX();
+        float playerRight = getX() + getWidth();
+
+        float platformTop = platform.getY() + platform.getHeight();
+        float platformLeft = platform.getX();
+        float platformRight = platform.getX() + platform.getWidth();
+
+        // Horizontal overlap
+        boolean horizontalOverlap = playerRight > platformLeft && playerLeft < platformRight;
+
+        // Vertical collision (within threshold)
+        boolean verticalCollision = playerBottom <= platformTop && playerBottom >= platformTop - 10;
+
+        if (horizontalOverlap && verticalCollision && velocityY <= 0) {
+            // Snap player to top of platform to avoid clipping
+            setY(platformTop);
+            return true;
+        }
+
+        return false;
     }
 
     @Override
