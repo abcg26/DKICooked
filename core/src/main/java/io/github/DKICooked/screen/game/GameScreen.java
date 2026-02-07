@@ -53,7 +53,7 @@ public class GameScreen extends BaseScreen {
         Gdx.gl.glClearColor(0.2f, 0.2f, 0.3f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Check collisions before stage acts
+        // Check collisions FIRST, before stage.act()
         player.checkPlatformCollision(platforms);
 
         stage.act(delta);

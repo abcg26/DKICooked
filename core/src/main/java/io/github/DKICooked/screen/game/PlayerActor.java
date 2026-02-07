@@ -2,6 +2,7 @@ package io.github.DKICooked.screen.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -12,11 +13,11 @@ public class PlayerActor extends Actor {
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
 
     // Movement
-    private final float moveSpeed = 250f;
+    private final float moveSpeed = 350f;
 
     // Jump physics
     private float velocityY = 0f;
-    private final float gravity = -1400f;
+    private final float gravity = -1800;
 
     // Jump charge
     private float jumpCharge = 0f;
@@ -25,11 +26,15 @@ public class PlayerActor extends Actor {
 
     // State
     private boolean isCharging = false;
-    private boolean isGrounded = true;
-    private boolean wasSpacePressed = false; // Track previous frame state
+    private boolean isGrounded = false;
+    private float jumpCooldown = 0f;
+
     private Platform currentPlatform = null;
 
-    private final float groundY = 100f; // temporary ground
+    // Collision result enum
+    private enum CollisionResult {
+        NONE, LANDED_ON_TOP, HIT_SIDE, HIT_BOTTOM
+    }
 
     @Override
     public void act(float delta) {
@@ -37,22 +42,42 @@ public class PlayerActor extends Actor {
 
         boolean spacePressed = Gdx.input.isKeyPressed(Input.Keys.SPACE);
 
+        // Decrease jump cooldown
+        if (jumpCooldown > 0) {
+            jumpCooldown -= delta;
+        }
+
         // ===== CHARGING JUMP =====
-        if (isGrounded && spacePressed) {
-            isCharging = true;
+        if (isGrounded && spacePressed && jumpCooldown <= 0) {
+            if (!isCharging) {
+                // Start charging on first frame of grounded + space
+                isCharging = true;
+                jumpCharge = 0f;
+            }
+        }
+
+        // Continue charging regardless of grounded state (allows coyote time)
+        if (isCharging && spacePressed) {
             jumpCharge += chargeRate * delta;
-            jumpCharge = Math.min(jumpCharge, maxJumpCharge);
+            if (jumpCharge >= maxJumpCharge) {
+                jumpCharge = maxJumpCharge;
+            }
         }
 
         // ===== RELEASE JUMP =====
-        if (isGrounded && isCharging && wasSpacePressed && !spacePressed) {
-            velocityY = jumpCharge;
+        if (isCharging && !spacePressed) {
+            // Only jump if we have charge
+            if (jumpCharge > 0) {
+                velocityY = jumpCharge;
+                isGrounded = false;
+                currentPlatform = null;
+                jumpCooldown = 0.15f;
+            }
             jumpCharge = 0f;
             isCharging = false;
-            isGrounded = false;
         }
 
-        // ===== HORIZONTAL MOVEMENT (GROUND + AIR) =====
+        // ===== HORIZONTAL MOVEMENT =====
         if (!isCharging) {
             if (Gdx.input.isKeyPressed(Input.Keys.A)) {
                 moveBy(-moveSpeed * delta, 0);
@@ -68,63 +93,77 @@ public class PlayerActor extends Actor {
             moveBy(0, velocityY * delta);
         }
 
-        // ===== GROUND COLLISION =====
-        if (getY() < groundY) {
-            setY(groundY);
-            velocityY = 0f;
-            isGrounded = true;
-            isCharging = false;
-            jumpCharge = 0f;
-        }
-
-        // Update previous frame state
-        wasSpacePressed = spacePressed;
     }
-
     public void checkPlatformCollision(Array<Platform> platforms) {
-        if (velocityY > 0) {
-            // Don't check collision when moving upward
-            isGrounded = false;
-            currentPlatform = null;
-            return;
-        }
+        boolean foundGround = false;
 
         for (Platform platform : platforms) {
-            if (checkCollisionWithPlatform(platform)) {
-                velocityY = 0f;
-                isGrounded = true;
-                currentPlatform = platform;
-                return;
+            CollisionResult result = resolveCollision(platform);
+            if (result == CollisionResult.LANDED_ON_TOP) {
+                foundGround = true;
             }
         }
 
-        isGrounded = false;
-        currentPlatform = null;
+        if (!foundGround) {
+            isGrounded = false;
+            currentPlatform = null;
+        }
     }
 
-    private boolean checkCollisionWithPlatform(Platform platform) {
-        // Check if player is falling onto platform
-        float playerBottom = getY();
+    private CollisionResult resolveCollision(Platform platform) {
         float playerLeft = getX();
         float playerRight = getX() + getWidth();
+        float playerTop = getY() + getHeight();
+        float playerBottom = getY();
 
-        float platformTop = platform.getY() + platform.getHeight();
         float platformLeft = platform.getX();
         float platformRight = platform.getX() + platform.getWidth();
+        float platformTop = platform.getY() + platform.getHeight();
+        float platformBottom = platform.getY();
 
-        // Horizontal overlap
-        boolean horizontalOverlap = playerRight > platformLeft && playerLeft < platformRight;
+        boolean overlapping = playerRight > platformLeft &&
+            playerLeft < platformRight &&
+            playerTop > platformBottom &&
+            playerBottom < platformTop;
 
-        // Vertical collision (within threshold)
-        boolean verticalCollision = playerBottom <= platformTop && playerBottom >= platformTop - 10;
-
-        if (horizontalOverlap && verticalCollision && velocityY <= 0) {
-            // Snap player to top of platform to avoid clipping
-            setY(platformTop);
-            return true;
+        if (!overlapping) {
+            return CollisionResult.NONE;
         }
 
-        return false;
+        float overlapLeft = playerRight - platformLeft;
+        float overlapRight = platformRight - playerLeft;
+        float overlapTop = playerTop - platformBottom;
+        float overlapBottom = platformTop - playerBottom;
+
+        float minOverlap = Math.min(Math.min(overlapLeft, overlapRight),
+            Math.min(overlapTop, overlapBottom));
+
+        // Resolve collision based on smallest overlap
+        if (minOverlap == overlapBottom && velocityY <= 0) {
+            // Only land if cooldown expired
+            if (jumpCooldown <= 0) {
+                setY(platformTop);
+                velocityY = 0f;
+                isGrounded = true;
+                currentPlatform = platform;
+                return CollisionResult.LANDED_ON_TOP;
+            }
+        } else if (minOverlap == overlapTop && velocityY > 0) {
+            // Hit from bottom (head bonk)
+            setY(platformBottom - getHeight());
+            velocityY = 0f;
+            return CollisionResult.HIT_BOTTOM;
+        } else if (minOverlap == overlapLeft) {
+            // Hit from right side
+            setX(platformLeft - getWidth());
+            return CollisionResult.HIT_SIDE;
+        } else if (minOverlap == overlapRight) {
+            // Hit from left side
+            setX(platformRight);
+            return CollisionResult.HIT_SIDE;
+        }
+
+        return CollisionResult.NONE;
     }
 
     @Override
@@ -133,9 +172,14 @@ public class PlayerActor extends Actor {
 
         shapeRenderer.setProjectionMatrix(getStage().getCamera().combined);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(Color.RED);
         shapeRenderer.rect(getX(), getY(), getWidth(), getHeight());
         shapeRenderer.end();
 
         batch.begin();
+    }
+
+    public float getJumpChargePercent() {
+        return jumpCharge / maxJumpCharge;
     }
 }
