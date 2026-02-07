@@ -1,10 +1,11 @@
-package io.github.DKICooked.gui;
+package io.github.DKICooked.screen;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 public abstract class BaseScreen implements Screen {
@@ -12,14 +13,15 @@ public abstract class BaseScreen implements Screen {
     protected Skin skin;
 
     public BaseScreen() {
-        stage = new Stage(new ScreenViewport());
+        stage = new Stage(new FitViewport(800, 600));
         Gdx.input.setInputProcessor(stage);
         //skin = new Skin(Gdx.files.internal("uiskin.json"));
     }
 
     @Override
     public void render(float delta) {
-        Gdx.gl.glClear(GL20.GL_RENDERER);
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f); // RGBA (0,0,0,1) = black
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         stage.act(delta);
         stage.draw();
     }
@@ -35,7 +37,10 @@ public abstract class BaseScreen implements Screen {
         skin.dispose();
     }
 
-    @Override public void show() {}
+    @Override
+    public void show() {
+        Gdx.input.setInputProcessor(stage);
+    }
     @Override public void hide() {}
     @Override public void pause() {}
     @Override public void resume() {}
