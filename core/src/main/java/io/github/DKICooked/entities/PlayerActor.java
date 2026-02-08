@@ -16,24 +16,41 @@ public class PlayerActor extends Actor {
     private final Rectangle bounds = new Rectangle();
     private Array<Platform> platforms = new Array<>();
 
-    // Jump charge
-    private float jumpCharge = 0f;
-    private final float maxJumpCharge = 900f;
-    private final float chargeRate = 1600f;
+    private float jumpCharge;
+    private final float maxJumpCharge;
+    private final float chargeRate;
 
-    // State
-    private boolean isCharging = false;
-    private boolean isGrounded = false;
-    private float jumpCooldown = 0f;
+    private boolean isCharging;
+    private boolean isGrounded;
+    private float jumpCooldown;
 
-    // Side collision stun
-    private float stunTime = 0f;
-    private final float stunDuration = 0.3f;
-    private final float bounceForce = 0.6f;
+    private float stunTime;
+    private final float stunDuration;
+    private final float bounceForce;
 
-    // Fixed timestep
+    private float physicsAccumulator;
+
     private static final float PHYSICS_STEP = 1/180f;
-    private float physicsAccumulator = 0f;
+
+    {
+        // Jump charge
+        maxJumpCharge = 900f;
+        jumpCharge = 0f;
+        chargeRate = 1600f;
+
+        // State
+        isCharging = false;
+        isGrounded = false;
+        jumpCooldown = 0f;
+
+        // Side collision stun
+        stunTime = 0f;
+        stunDuration = 0.3f;
+        bounceForce = 0.6f;
+
+        // Fixed timestep
+        physicsAccumulator = 0f;
+    }
 
     @Override
     public void act(float delta) {
