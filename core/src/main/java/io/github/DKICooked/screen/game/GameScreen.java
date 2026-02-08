@@ -12,7 +12,7 @@ public class GameScreen extends BaseScreen {
     private Array<Platform> platforms;
 
     public GameScreen() {
-        super(); // calls BaseScreen constructor
+        super();
 
         platforms = new Array<>();
 
@@ -24,6 +24,9 @@ public class GameScreen extends BaseScreen {
 
         // Create some test platforms
         createTestPlatforms();
+
+        // ADDED: Give player reference to platforms
+        player.setPlatforms(platforms);
     }
 
     private void createTestPlatforms() {
@@ -55,8 +58,8 @@ public class GameScreen extends BaseScreen {
         Gdx.gl.glClearColor(0f, 0f, 0f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Check collisions FIRST, before stage.act()
-        player.checkPlatformCollision(platforms);
+        // REMOVED: player.checkPlatformCollision(platforms);
+        // Collision is handled inside player.act() now
 
         stage.act(delta);
         stage.draw();
@@ -65,6 +68,5 @@ public class GameScreen extends BaseScreen {
     @Override
     public void dispose() {
         stage.dispose();
-        // Don't dispose skin since BaseScreen already does it
     }
 }

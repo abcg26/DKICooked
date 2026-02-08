@@ -2,18 +2,19 @@ package io.github.DKICooked.entities;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.utils.Array;
 import io.github.DKICooked.physics.CollisionResolver;
 import io.github.DKICooked.physics.PhysicsBody;
+import io.github.DKICooked.render.DebugRenderer;
+import com.badlogic.gdx.math.Rectangle;
 
 public class PlayerActor extends Actor {
 
-    private final ShapeRenderer shapeRenderer = new ShapeRenderer();
-    private final PhysicsBody body = new PhysicsBody(2000f, 300f, 1800f, -1800f);
+    private final PhysicsBody body = new PhysicsBody(2000f, 300f, 1300f, -1800f);
+    private final Rectangle bounds = new Rectangle();
+    private Array<Platform> platforms = new Array<>();
 
     // Jump charge
     private float jumpCharge = 0f;
@@ -46,6 +47,7 @@ public class PlayerActor extends Actor {
     }
 
     private void updatePhysics(float dt) {
+
         boolean space = Gdx.input.isKeyPressed(Input.Keys.SPACE);
 
         if (jumpCooldown > 0f) jumpCooldown -= dt;
@@ -63,12 +65,12 @@ public class PlayerActor extends Actor {
 
         if (isCharging && !space) {
             body.velocityY = jumpCharge;
-            isCharging = false;
             isGrounded = false;
+            isCharging = false;
             jumpCooldown = 0.15f;
         }
 
-        // ===== HORIZONTAL INPUT =====
+        // ===== INPUT =====
         float input = 0f;
         if (!isCharging && stunTime <= 0f) {
             if (Gdx.input.isKeyPressed(Input.Keys.A)) input -= 1f;
@@ -77,40 +79,74 @@ public class PlayerActor extends Actor {
 
         body.applyHorizontalInput(input, dt);
 
-        if (!isGrounded) body.applyGravity(dt);
+        // ==================================================
+        // HORIZONTAL MOVE FIRST
+        // ==================================================
+        moveBy(body.velocityX * dt, 0);
+        bounds.set(getX(), getY(), getWidth(), getHeight());
 
-        body.move(this, dt);
-
-        // ===== EPSILON STOP =====
-        if (Math.abs(body.velocityX) < 0.5f) body.velocityX = 0f;
-        if (Math.abs(body.velocityY) < 0.5f) body.velocityY = 0f;
-    }
-
-    public void checkPlatformCollision(Array<Platform> platforms) {
-        isGrounded = false;
-
-        for (Platform platform : platforms) {
-            CollisionResolver.Result r = CollisionResolver.resolve(this, body, platform);
-
-            if (r == CollisionResolver.Result.LANDED_ON_TOP) {
-                isGrounded = true;
-            }
+        // Resolve SIDE collisions only
+        for (Platform p : platforms) {
+            CollisionResolver.Result r =
+                CollisionResolver.resolve(bounds, body, p);
 
             if (r == CollisionResolver.Result.HIT_SIDE) {
                 body.velocityX *= bounceForce;
                 stunTime = stunDuration;
             }
         }
+
+        // Sync actor position with bounds after collision
+        setPosition(bounds.x, bounds.y);
+
+        // ==================================================
+        // VERTICAL MOVE SECOND
+        // ==================================================
+        if (!isGrounded) {
+            body.applyGravity(dt);
+            moveBy(0, body.velocityY * dt);
+        }
+
+        bounds.set(getX(), getY(), getWidth(), getHeight());
+
+        // Resolve vertical collisions (ground / ceiling)
+        boolean foundGround = false;
+        for (Platform p : platforms) {
+            CollisionResolver.Result r =
+                CollisionResolver.resolve(bounds, body, p);
+
+            if (r == CollisionResolver.Result.LANDED_ON_TOP) {
+                foundGround = true;
+            }
+        }
+
+        // Sync actor position with bounds after collision
+        setPosition(bounds.x, bounds.y);
+
+        isGrounded = foundGround;
+
+        if (isGrounded) {
+            body.velocityY = 0f;
+        }
+
+        // Small horizontal snap-to-zero
+        if (Math.abs(body.velocityX) < 0.5f) {
+            body.velocityX = 0f;
+        }
+    }
+
+    public void setPlatforms(Array<Platform> platforms) {
+        this.platforms = platforms;
     }
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
         batch.end();
-        shapeRenderer.setProjectionMatrix(getStage().getCamera().combined);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(Color.RED);
-        shapeRenderer.rect(getX(), getY(), getWidth(), getHeight());
-        shapeRenderer.end();
+
+        DebugRenderer.begin(getStage().getCamera());
+        DebugRenderer.renderer.rect(getX(), getY(), getWidth(), getHeight());
+        DebugRenderer.end();
+
         batch.begin();
     }
 }

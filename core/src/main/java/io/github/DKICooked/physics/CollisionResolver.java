@@ -1,6 +1,6 @@
 package io.github.DKICooked.physics;
 
-import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.math.Rectangle;
 import io.github.DKICooked.entities.Platform;
 
 public class CollisionResolver {
@@ -9,13 +9,13 @@ public class CollisionResolver {
         NONE, LANDED_ON_TOP, HIT_SIDE, HIT_BOTTOM
     }
 
-    private static final float EPSILON = 0.5f; // tiny buffer to prevent stutter
+    private static final float EPSILON = 0.5f;
 
-    public static Result resolve(Actor actor, PhysicsBody body, Platform platform) {
-        float aL = actor.getX();
-        float aR = actor.getX() + actor.getWidth();
-        float aB = actor.getY();
-        float aT = actor.getY() + actor.getHeight();
+    public static Result resolve(Rectangle actor, PhysicsBody body, Platform platform) {
+        float aL = actor.x;
+        float aR = actor.x + actor.width;
+        float aB = actor.y;
+        float aT = actor.y + actor.height;
 
         float pL = platform.getX();
         float pR = platform.getX() + platform.getWidth();
@@ -33,25 +33,25 @@ public class CollisionResolver {
         float min = Math.min(Math.min(oL, oR), Math.min(oT, oB));
 
         if (min == oB && body.velocityY <= 0f) {
-            actor.setY(pT);
+            actor.y = pT; // FIXED: Use .y not .setY()
             body.velocityY = 0f;
             return Result.LANDED_ON_TOP;
         }
 
         if (min == oT && body.velocityY > 0f) {
-            actor.setY(pB - actor.getHeight());
+            actor.y = pB - actor.height; // FIXED: Use .y and .height
             body.velocityY = 0f;
             return Result.HIT_BOTTOM;
         }
 
         if (min == oL) {
-            actor.setX(pL - actor.getWidth() - EPSILON);
+            actor.x = pL - actor.width - EPSILON; // FIXED: Use .x and .width
             body.velocityX = -Math.abs(body.velocityX);
             return Result.HIT_SIDE;
         }
 
         if (min == oR) {
-            actor.setX(pR + EPSILON);
+            actor.x = pR + EPSILON; // FIXED: Use .x
             body.velocityX = Math.abs(body.velocityX);
             return Result.HIT_SIDE;
         }
