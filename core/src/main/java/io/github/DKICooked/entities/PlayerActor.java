@@ -46,7 +46,7 @@ public class PlayerActor extends Actor {
         // Side collision stun
         stunTime = 0f;
         stunDuration = 0.3f;
-        bounceForce = 0.6f;
+        bounceForce = 1.3f;
 
         // Fixed timestep
         physicsAccumulator = 0f;
@@ -154,6 +154,10 @@ public class PlayerActor extends Actor {
 
     public void setPlatforms(Array<Platform> platforms) {
         this.platforms = platforms;
+    }
+
+    public PhysicsBody getBody() {
+        return body;
     }
 
     @Override
