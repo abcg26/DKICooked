@@ -84,22 +84,57 @@ public class GameScreen extends BaseScreen {
     }
 
     private void generateChunk(Chunk chunk) {
-        // Pick a random puzzle type
-        ChunkType type = ChunkType.values()[MathUtils.random(ChunkType.values().length - 1)];
+        float currentY = chunk.yStart + 60f;
+        float currentX = SCREEN_WIDTH / 2; // Start in the middle
 
-        if (chunk.index == 0) type = ChunkType.ZIG_ZAG;
-
-        switch (type) {
-            case ZIG_ZAG:
-                createZigZag(chunk);
-                break;
-            case THE_GAP:
-                createTheGap(chunk);
-                break;
-            case STAGGERED:
-                createStaggered(chunk);
-                break;
+        // Safety floor for the very first chunk
+        if (chunk.index == 0) {
+            chunk.girders.add(new Girder(0, currentY, SCREEN_WIDTH, GIRDER_HEIGHT, 0));
+            currentY += 120f;
         }
+
+        // Generate the "Golden Path"
+        while (currentY < chunk.yStart + CHUNK_HEIGHT - 100f) {
+            float girderWidth = MathUtils.random(100f, 250f);
+
+            // Jump King math: How far can Donkey Kong actually jump?
+            // Max horizontal jump is usually related to maxJumpCharge
+            float horizontalGap = MathUtils.random(150f, 300f);
+            float verticalGap = MathUtils.random(120f, 160f); // Keep it climbable
+
+            // Alternate sides
+            if (currentX > SCREEN_WIDTH / 2) {
+                currentX -= horizontalGap;
+            } else {
+                currentX += horizontalGap;
+            }
+
+            currentX = MathUtils.clamp(currentX, 50, SCREEN_WIDTH - girderWidth - 50);
+
+            // Create the "Funnel" effect: Slope DOWN toward the center of the gap
+            float slope = (currentX < SCREEN_WIDTH / 2) ? -15f : 15f;
+
+            Girder pathGirder = new Girder(currentX, currentY, girderWidth, GIRDER_HEIGHT, slope);
+
+            // Occasionally add a hole to a wide girder to make it a "Puzzle"
+            if (girderWidth > 200f && MathUtils.random() > 0.5f) {
+                pathGirder.addHole(girderWidth / 2 - 40, 80);
+            }
+
+            chunk.girders.add(pathGirder);
+
+            currentY += verticalGap;
+        }
+
+        // Add "The Traps" (Decoys)
+        addDecoyGirders(chunk);
+    }
+
+    private void addDecoyGirders(Chunk chunk) {
+        // Add 1 or 2 girders that look like a path but lead to nowhere
+        // or over a "Mega Fall" zone.
+        float decoyY = chunk.yStart + MathUtils.random(200, 400);
+        chunk.girders.add(new Girder(MathUtils.random(0, 600), decoyY, 100, GIRDER_HEIGHT, 40));
     }
 
 // --- Puzzle Templates ---
