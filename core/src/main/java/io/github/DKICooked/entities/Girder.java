@@ -51,37 +51,51 @@ public class Girder extends Actor {
     @Override
     public void draw(Batch batch, float parentAlpha) {
         batch.end();
-
         DebugRenderer.begin(getStage().getCamera());
         DebugRenderer.renderer.setColor(GIRDER_RED);
 
-        if (hasHole()) {
-            // Left segment
-            DebugRenderer.renderer.rect(
-                getX(),
-                getY(),
-                holeX,
-                getHeight()
-            );
+        float x = getX();
+        float y = getY();
+        float w = getWidth();
+        float h = getHeight();
 
-            // Right segment
-            DebugRenderer.renderer.rect(
-                getX() + holeX + holeWidth,
-                getY(),
-                getWidth() - (holeX + holeWidth),
-                getHeight()
-            );
+        // Calculate the Y offset for the right side based on slope
+        // Note: slope is the total vertical rise across the width
+        float rightSideYOffset = slope;
+
+        if (hasHole()) {
+            // Draw Left Segment
+            float holeStartX = holeX;
+            float holeStartTopY = y + h + (slope * (holeStartX / w));
+            float holeStartBottomY = y + (slope * (holeStartX / w));
+
+            // Connect (x, y) to (x+holeX, holeStartBottomY) etc.
+            drawSlopedRect(x, y, holeStartX, h, slope * (holeStartX / w));
+
+            // Draw Right Segment
+            float holeEndX = holeX + holeWidth;
+            float segment2Width = w - holeEndX;
+            float seg2StartBottomY = y + (slope * (holeEndX / w));
+
+            drawSlopedRect(x + holeEndX, seg2StartBottomY, segment2Width, h, slope * (segment2Width / w));
         } else {
-            DebugRenderer.renderer.rect(
-                getX(),
-                getY(),
-                getWidth(),
-                getHeight()
-            );
+            drawSlopedRect(x, y, w, h, slope);
         }
 
         DebugRenderer.end();
         batch.begin();
+    }
+
+    /** Helper to draw a tilted rectangle using 4 lines */
+    private void drawSlopedRect(float x, float y, float width, float height, float segmentSlope) {
+        // Bottom line
+        DebugRenderer.renderer.line(x, y, x + width, y + segmentSlope);
+        // Top line
+        DebugRenderer.renderer.line(x, y + height, x + width, y + height + segmentSlope);
+        // Left side
+        DebugRenderer.renderer.line(x, y, x, y + height);
+        // Right side
+        DebugRenderer.renderer.line(x + width, y + segmentSlope, x + width, y + height + segmentSlope);
     }
 
     public float getHoleX() { return holeX; }

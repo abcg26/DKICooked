@@ -5,7 +5,6 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
 import io.github.DKICooked.Main;
@@ -14,6 +13,7 @@ import io.github.DKICooked.entities.PlayerActor;
 import io.github.DKICooked.entities.PlayerSprite;
 import io.github.DKICooked.render.DebugRenderer;
 import io.github.DKICooked.screen.BaseScreen;
+import io.github.DKICooked.screen.main.MainMenuScreen;
 
 public class GameScreen extends BaseScreen {
 
@@ -110,7 +110,7 @@ public class GameScreen extends BaseScreen {
 
         for (int i = 0; i < 4; i++) {
             float slope = slopeLeft ? 30f : -30f;
-            Girder g = new Girder(0, y, SCREEN_WIDTH, GIRDER_HEIGHT, slope);
+            Girder g = new Girder(0, y, SCREEN_WIDTH, GIRDER_HEIGHT, -slope);
 
             // Create the "climb-up" hole at the end of the slope
             float holeX = slopeLeft ? SCREEN_WIDTH - 120f : 40f;
@@ -176,17 +176,27 @@ public class GameScreen extends BaseScreen {
     private void updateChunks() {
         int playerChunk = (int)(player.getY() / CHUNK_HEIGHT);
 
+        // --- GAME OVER CHECK ---
+        // If the player falls below the current active chunk into an unloaded zone
+        if (playerChunk < currentChunk - 2 || player.getY() < -50f) {
+            // Trigger Game Over / Back to Menu
+            main.setScreen(new MainMenuScreen(main));
+            return;
+        }
+
         if (playerChunk != currentChunk) {
-            currentChunk = playerChunk;
+            // If climbing up
+            if (playerChunk > currentChunk) {
+                currentChunk = playerChunk;
+                getOrCreateChunk(playerChunk + 1);
 
-            getOrCreateChunk(playerChunk + 1);
-
-            for (IntMap.Entry<Chunk> e : chunks) {
-                if (Math.abs(e.key - playerChunk) > 1) {
-                    unloadChunk(e.value);
+                // Unload anything 2 chunks below
+                for (IntMap.Entry<Chunk> e : chunks) {
+                    if (e.key < playerChunk - 1) {
+                        unloadChunk(e.value);
+                    }
                 }
             }
-
             snapCamera(playerChunk);
         }
     }
