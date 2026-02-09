@@ -47,6 +47,7 @@ public class PlayerActor extends Actor {
             accumulator -= STEP;
         }
     }
+    public boolean facingRight = true;
 
     private void updatePhysics(float dt) {
 
@@ -148,6 +149,12 @@ public class PlayerActor extends Actor {
         // IMPORTANT: If we are grounded, don't let gravity accumulate
         if (isGrounded && !isCharging) {
             body.velocityY = 0;
+        }
+
+        if (body.velocityX > 0.1f) {
+            facingRight = true;
+        } else if (body.velocityX < -0.1f) {
+            facingRight = false;
         }
 
         // ================================
