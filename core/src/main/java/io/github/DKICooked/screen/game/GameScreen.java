@@ -4,7 +4,14 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
 import io.github.DKICooked.Main;
@@ -26,6 +33,9 @@ public class GameScreen extends BaseScreen {
 
     private final Main main;
     private final Array<Girder> activeGirders = new Array<>();
+
+    private PausedScreen pause;
+    private boolean paused = false;
 
     private PlayerActor player;
     private PlayerSprite sprite;
@@ -56,6 +66,33 @@ public class GameScreen extends BaseScreen {
 
         sprite = new PlayerSprite(player);
 
+        Texture pauseTex = new Texture(Gdx.files.internal("Pause.png"));
+        ImageButton.ImageButtonStyle pauseStyle = new ImageButton.ImageButtonStyle();
+        pauseStyle.imageUp = new TextureRegionDrawable(new TextureRegion(pauseTex));
+        ImageButton pauseButton = new ImageButton(pauseStyle);
+        pauseButton.setPosition(10, Gdx.graphics.getHeight() - 50);
+        stage.addActor(pauseButton);
+        Table uiTable = new Table();
+        uiTable.setFillParent(true);
+        stage.addActor(uiTable);
+        uiTable.top().right();
+        uiTable.add(pauseButton).size(40, 40).pad(10);
+
+        pause = new PausedScreen(() -> {
+            paused = false;
+            pause.toggle(false);;
+        }, main);
+        stage.addActor(pause);
+        pauseButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                paused = !paused;
+                pause.toggle(paused);
+                System.out.println("Paused: " + paused);
+            }
+        });
+
+
         getOrCreateChunk(0);
         getOrCreateChunk(1);
 
@@ -84,57 +121,22 @@ public class GameScreen extends BaseScreen {
     }
 
     private void generateChunk(Chunk chunk) {
-        float currentY = chunk.yStart + 60f;
-        float currentX = SCREEN_WIDTH / 2; // Start in the middle
+        // Pick a random puzzle type
+        ChunkType type = ChunkType.values()[MathUtils.random(ChunkType.values().length - 1)];
 
-        // Safety floor for the very first chunk
-        if (chunk.index == 0) {
-            chunk.girders.add(new Girder(0, currentY, SCREEN_WIDTH, GIRDER_HEIGHT, 0));
-            currentY += 120f;
+        if (chunk.index == 0) type = ChunkType.ZIG_ZAG;
+
+        switch (type) {
+            case ZIG_ZAG:
+                createZigZag(chunk);
+                break;
+            case THE_GAP:
+                createTheGap(chunk);
+                break;
+            case STAGGERED:
+                createStaggered(chunk);
+                break;
         }
-
-        // Generate the "Golden Path"
-        while (currentY < chunk.yStart + CHUNK_HEIGHT - 100f) {
-            float girderWidth = MathUtils.random(100f, 250f);
-
-            // Jump King math: How far can Donkey Kong actually jump?
-            // Max horizontal jump is usually related to maxJumpCharge
-            float horizontalGap = MathUtils.random(150f, 300f);
-            float verticalGap = MathUtils.random(120f, 160f); // Keep it climbable
-
-            // Alternate sides
-            if (currentX > SCREEN_WIDTH / 2) {
-                currentX -= horizontalGap;
-            } else {
-                currentX += horizontalGap;
-            }
-
-            currentX = MathUtils.clamp(currentX, 50, SCREEN_WIDTH - girderWidth - 50);
-
-            // Create the "Funnel" effect: Slope DOWN toward the center of the gap
-            float slope = (currentX < SCREEN_WIDTH / 2) ? -15f : 15f;
-
-            Girder pathGirder = new Girder(currentX, currentY, girderWidth, GIRDER_HEIGHT, slope);
-
-            // Occasionally add a hole to a wide girder to make it a "Puzzle"
-            if (girderWidth > 200f && MathUtils.random() > 0.5f) {
-                pathGirder.addHole(girderWidth / 2 - 40, 80);
-            }
-
-            chunk.girders.add(pathGirder);
-
-            currentY += verticalGap;
-        }
-
-        // Add "The Traps" (Decoys)
-        addDecoyGirders(chunk);
-    }
-
-    private void addDecoyGirders(Chunk chunk) {
-        // Add 1 or 2 girders that look like a path but lead to nowhere
-        // or over a "Mega Fall" zone.
-        float decoyY = chunk.yStart + MathUtils.random(200, 400);
-        chunk.girders.add(new Girder(MathUtils.random(0, 600), decoyY, 100, GIRDER_HEIGHT, 40));
     }
 
 // --- Puzzle Templates ---
@@ -259,7 +261,12 @@ public class GameScreen extends BaseScreen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        if (!Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            paused = !paused;
+            pause.toggle(paused);
+        }
+
+        if (!paused) {
             updateChunks();
         }
 
