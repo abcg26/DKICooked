@@ -2,15 +2,16 @@ package io.github.DKICooked.screen.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
+import com.badlogic.gdx.utils.ScreenUtils;
 import io.github.DKICooked.Main;
-import io.github.DKICooked.entities.Girder;
+import io.github.DKICooked.entities.Platform;
 import io.github.DKICooked.entities.PlayerActor;
 import io.github.DKICooked.entities.PlayerSprite;
+import io.github.DKICooked.gameLogic.generationLogic.LevelGenerator;
 import io.github.DKICooked.render.DebugRenderer;
 import io.github.DKICooked.screen.BaseScreen;
 import io.github.DKICooked.screen.main.MainMenuScreen;
@@ -20,24 +21,24 @@ public class GameScreen extends BaseScreen {
     private static final float SCREEN_WIDTH = 800f;
     private static final float SCREEN_HEIGHT = 600f;
     private static final float CHUNK_HEIGHT = SCREEN_HEIGHT;
-    private static final float GIRDER_HEIGHT = 18f;
-
-    private int highestChunkReached = 0;
 
     private final Main main;
-    private final Array<Girder> activeGirders = new Array<>();
+    private final LevelGenerator generator = new LevelGenerator();
+
+    // The "Source of Truth" for physics and rendering
+    private final Array<Platform> activePlatforms = new Array<>();
+    private final IntMap<Chunk> chunks = new IntMap<>();
 
     private PlayerActor player;
     private PlayerSprite sprite;
 
     private int currentChunk = 0;
-    private final IntMap<Chunk> chunks = new IntMap<>();
+    private int highestChunkReached = 0;
 
     private static class Chunk {
         int index;
         float yStart;
-        Array<Girder> girders = new Array<>();
-        boolean loaded;
+        Array<Platform> platforms = new Array<>();
 
         Chunk(int index) {
             this.index = index;
@@ -48,245 +49,106 @@ public class GameScreen extends BaseScreen {
     public GameScreen(Main main) {
         this.main = main;
 
+        // Setup Player
         player = new PlayerActor();
         player.setSize(40, 60);
-        player.setPosition(100, 200);
+        player.setPosition(400, 150); // Start middle-bottom
         stage.addActor(player);
-        player.setGirders(activeGirders);
 
         sprite = new PlayerSprite(player);
 
+        // Initial world generation
         getOrCreateChunk(0);
         getOrCreateChunk(1);
+
+        // Pass initial platforms to player
+        updateActivePlatformsList();
 
         snapCamera(0);
     }
 
-    // ------------------------------------------------------
-
     private void getOrCreateChunk(int index) {
-        if (chunks.containsKey(index)) {
-            Chunk c = chunks.get(index);
-            if (!c.loaded) loadChunk(c);
-            return;
-        }
+        if (chunks.containsKey(index)) return;
 
         Chunk chunk = new Chunk(index);
-        generateChunk(chunk);
+        // Path-First Generation
+        Array<Platform> generated = generator.generateChunk(chunk.yStart, CHUNK_HEIGHT);
+        chunk.platforms.addAll(generated);
+
         chunks.put(index, chunk);
-        loadChunk(chunk);
     }
 
-    private enum ChunkType {
-        ZIG_ZAG,
-        THE_GAP,
-        STAGGERED,
-    }
-
-    private void generateChunk(Chunk chunk) {
-        float currentY = chunk.yStart + 60f;
-        float currentX = SCREEN_WIDTH / 2; // Start in the middle
-
-        // Safety floor for the very first chunk
-        if (chunk.index == 0) {
-            chunk.girders.add(new Girder(0, currentY, SCREEN_WIDTH, GIRDER_HEIGHT, 0));
-            currentY += 120f;
-        }
-
-        // Generate the "Golden Path"
-        while (currentY < chunk.yStart + CHUNK_HEIGHT - 100f) {
-            float girderWidth = MathUtils.random(100f, 250f);
-
-            // Jump King math: How far can Donkey Kong actually jump?
-            // Max horizontal jump is usually related to maxJumpCharge
-            float horizontalGap = MathUtils.random(150f, 300f);
-            float verticalGap = MathUtils.random(120f, 160f); // Keep it climbable
-
-            // Alternate sides
-            if (currentX > SCREEN_WIDTH / 2) {
-                currentX -= horizontalGap;
-            } else {
-                currentX += horizontalGap;
+    private void updateActivePlatformsList() {
+        activePlatforms.clear();
+        // Only keep platforms from the previous, current, and next chunk for performance
+        for (int i = currentChunk - 1; i <= currentChunk + 1; i++) {
+            if (chunks.containsKey(i)) {
+                activePlatforms.addAll(chunks.get(i).platforms);
             }
-
-            currentX = MathUtils.clamp(currentX, 50, SCREEN_WIDTH - girderWidth - 50);
-
-            // Create the "Funnel" effect: Slope DOWN toward the center of the gap
-            float slope = (currentX < SCREEN_WIDTH / 2) ? -15f : 15f;
-
-            Girder pathGirder = new Girder(currentX, currentY, girderWidth, GIRDER_HEIGHT, slope);
-
-            // Occasionally add a hole to a wide girder to make it a "Puzzle"
-            if (girderWidth > 200f && MathUtils.random() > 0.5f) {
-                pathGirder.addHole(girderWidth / 2 - 40, 80);
-            }
-
-            chunk.girders.add(pathGirder);
-
-            currentY += verticalGap;
         }
-
-        // Add "The Traps" (Decoys)
-        addDecoyGirders(chunk);
+        player.setPlatforms(activePlatforms);
     }
-
-    private void addDecoyGirders(Chunk chunk) {
-        // Add 1 or 2 girders that look like a path but lead to nowhere
-        // or over a "Mega Fall" zone.
-        float decoyY = chunk.yStart + MathUtils.random(200, 400);
-        chunk.girders.add(new Girder(MathUtils.random(0, 600), decoyY, 100, GIRDER_HEIGHT, 40));
-    }
-
-// --- Puzzle Templates ---
-
-    private void createZigZag(Chunk chunk) {
-        float y = chunk.yStart + 100f;
-        boolean slopeLeft = chunk.index % 2 == 0;
-
-        for (int i = 0; i < 4; i++) {
-            float slope = slopeLeft ? 30f : -30f;
-            Girder g = new Girder(0, y, SCREEN_WIDTH, GIRDER_HEIGHT, -slope);
-
-            // Create the "climb-up" hole at the end of the slope
-            float holeX = slopeLeft ? SCREEN_WIDTH - 120f : 40f;
-            g.addHole(holeX, 80f);
-
-            chunk.girders.add(g);
-            y += 140f;
-            slopeLeft = !slopeLeft;
-        }
-    }
-
-    private void createTheGap(Chunk chunk) {
-        float y = chunk.yStart + 150f;
-
-        // Bottom platform
-        Girder bottom = new Girder(0, y, SCREEN_WIDTH, GIRDER_HEIGHT, 0);
-        bottom.addHole(200, 400); // Massive hole in the middle
-        chunk.girders.add(bottom);
-
-        // Small "island" in the middle of the screen higher up
-        chunk.girders.add(new Girder(350, y + 200, 100, GIRDER_HEIGHT, 0));
-
-        // Top platforms
-        Girder top = new Girder(0, y + 400, SCREEN_WIDTH, GIRDER_HEIGHT, 0);
-        top.addHole(300, 200);
-        chunk.girders.add(top);
-    }
-
-    private void createStaggered(Chunk chunk) {
-        float y = chunk.yStart + 80f;
-        float lastX = 100;
-
-        for (int i = 0; i < 5; i++) {
-            float width = MathUtils.random(80f, 150f);
-            float x = (lastX < 400) ? MathUtils.random(450f, 650f) : MathUtils.random(50f, 250f);
-
-            chunk.girders.add(new Girder(x, y, width, GIRDER_HEIGHT, MathUtils.random(-10f, 10f)));
-            y += 110f;
-            lastX = x;
-        }
-    }
-
-    private void loadChunk(Chunk chunk) {
-        for (Girder g : chunk.girders) {
-            stage.addActor(g);
-            activeGirders.add(g);
-        }
-        chunk.loaded = true;
-    }
-
-    private void unloadChunk(Chunk chunk) {
-        for (Girder g : chunk.girders) {
-            g.remove();
-            activeGirders.removeValue(g, true);
-        }
-        chunk.loaded = false;
-    }
-
-    // ------------------------------------------------------
 
     private void updateChunks() {
         int playerChunk = (int)(player.getY() / CHUNK_HEIGHT);
 
-        // UPDATE HIGHEST POINT
-        if (playerChunk > highestChunkReached) {
-            highestChunkReached = playerChunk;
-        }
+        // Update Highest Point & Game Over Check
+        if (playerChunk > highestChunkReached) highestChunkReached = playerChunk;
 
-        // GAME OVER CHECK
         if (highestChunkReached > 0 && playerChunk < highestChunkReached - 1) {
-            /*
-
-              FOR GAME OVER SCREEN REPLACE setScreen
-
-            */
             Gdx.app.postRunnable(() -> main.setScreen(new MainMenuScreen(main)));
             return;
         }
 
-        // CHUNK & CAMERA MANAGEMENT
+        // Chunk Management
         if (playerChunk != currentChunk) {
             currentChunk = playerChunk;
-
             getOrCreateChunk(currentChunk);
             getOrCreateChunk(currentChunk + 1);
-            if (currentChunk > 0) getOrCreateChunk(currentChunk - 1);
 
-            for (IntMap.Entry<Chunk> e : chunks) {
-                if (Math.abs(e.key - currentChunk) > 1) {
-                    unloadChunk(e.value);
-                }
-            }
+            updateActivePlatformsList();
             snapCamera(currentChunk);
         }
     }
 
     private void snapCamera(int chunkIndex) {
         OrthographicCamera cam = (OrthographicCamera) stage.getCamera();
-        cam.position.set(
-            SCREEN_WIDTH / 2,
-            chunkIndex * CHUNK_HEIGHT + SCREEN_HEIGHT / 2,
-            0
-        );
+        cam.position.set(SCREEN_WIDTH / 2, chunkIndex * CHUNK_HEIGHT + SCREEN_HEIGHT / 2, 0);
         cam.update();
     }
 
-    // ------------------------------------------------------
-
     @Override
     public void render(float delta) {
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        // 1. Clear Screen
+        ScreenUtils.clear(0.05f, 0.05f, 0.08f, 1f);
 
+        // 2. Logic Update
         if (!Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
             updateChunks();
+            stage.act(delta);
         }
 
-        stage.act(delta);
+        // 3. Render Platforms (World Layer)
+        DebugRenderer.begin(stage.getCamera());
+        DebugRenderer.renderer.setColor(Color.RED);
+        for (Platform p : activePlatforms) {
+            p.draw(DebugRenderer.renderer);
+        }
+        DebugRenderer.end();
+
+        // 4. Render Stage (UI/Actors)
         stage.draw();
 
+        // 5. Render Player Sprite (Entity Layer)
         var batch = stage.getBatch();
+        batch.setProjectionMatrix(stage.getCamera().combined);
         batch.begin();
         sprite.draw(batch, player);
         batch.end();
-
-        drawScreenOutline();
     }
 
-    private void drawScreenOutline() {
-        DebugRenderer.begin(stage.getCamera());
-        DebugRenderer.renderer.setColor(0, 0, 0, 0);
-
-        OrthographicCamera cam = (OrthographicCamera) stage.getCamera();
-        DebugRenderer.renderer.rect(
-            cam.position.x - SCREEN_WIDTH / 2,
-            cam.position.y - SCREEN_HEIGHT / 2,
-            SCREEN_WIDTH,
-            SCREEN_HEIGHT
-        );
-
-        DebugRenderer.end();
+    @Override
+    public void resize(int width, int height) {
+        stage.getViewport().update(width, height, true);
     }
-
 }
