@@ -48,6 +48,12 @@ public class PlayerSprite {
             frame = idleRegion;
         }
 
+        if (player.facingRight && frame.isFlipX()) {
+            frame.flip(true, false);
+        } else if (!player.facingRight && !frame.isFlipX()) {
+            frame.flip(true, false);
+        }
+
         batch.draw(frame, player.getX(), player.getY(), player.getWidth(), player.getHeight());
     }
 
