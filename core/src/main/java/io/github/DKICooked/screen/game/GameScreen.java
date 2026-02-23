@@ -23,6 +23,8 @@ import io.github.DKICooked.gameLogic.WorldManager;
 import io.github.DKICooked.render.DebugRenderer;
 import io.github.DKICooked.screen.BaseScreen;
 import io.github.DKICooked.screen.main.MainMenuScreen;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 
 public class GameScreen extends BaseScreen {
 
@@ -40,6 +42,10 @@ public class GameScreen extends BaseScreen {
     private int highestChunkReached = 0;
     private boolean paused = false;
     private PausedScreen pauseOverlay;
+
+    private Label scoreLabel;
+    private StringBuilder scoreBuilder = new StringBuilder();
+    private int recordHeight = 0;
 
     public GameScreen(Main main) {
         this.main = main;
@@ -64,11 +70,24 @@ public class GameScreen extends BaseScreen {
         Gdx.input.setInputProcessor(multiplexer);
 
         // 4. Initialize Components
-        displayPause();
+        setupUI();
         snapCamera(0);
     }
 
     private void updateLogic(float delta) {
+        world.update(player.getY());
+        player.setPlatforms(world.getActivePlatforms());
+
+        // Calculate current height in "meters"
+        // (Dividing by 100 makes the number feel more like a measurement)
+        int currentHeight = (int) (player.getY() / 100f);
+        int maxHeight = (int) ((highestChunkReached * 600f + player.getY() % 600f) / 100f);
+
+        // Update the label text efficiently
+        scoreBuilder.setLength(0);
+        scoreBuilder.append("Height: ").append(currentHeight).append("m");
+        scoreLabel.setText(scoreBuilder);
+
         world.update(player.getY());
         player.setPlatforms(world.getActivePlatforms());
 
@@ -84,6 +103,14 @@ public class GameScreen extends BaseScreen {
         if (highestChunkReached > 0 && currentChunk < highestChunkReached - 1) {
             Gdx.app.postRunnable(() -> main.setScreen(new MainMenuScreen(main)));
         }
+
+        if (currentHeight > recordHeight) {
+            recordHeight = currentHeight;
+        }
+
+        scoreBuilder.setLength(0);
+        scoreBuilder.append("Best: ").append(recordHeight).append("m");
+        scoreLabel.setText(scoreBuilder);
 
         stage.act(delta);
     }
@@ -131,7 +158,23 @@ public class GameScreen extends BaseScreen {
         uiStage.draw();
     }
 
-    public void displayPause() {
+    public void setupUI() {
+        // 1. Create a Label Style (using a basic font)
+        Label.LabelStyle labelStyle = new Label.LabelStyle();
+        labelStyle.font = new BitmapFont(); // Default LibGDX font
+        labelStyle.fontColor = Color.WHITE;
+
+        scoreLabel = new Label("Height: 0m", labelStyle);
+        scoreLabel.setFontScale(1.5f); // Make it a bit bigger
+
+        // 2. Add to your existing Table or a new one
+        Table scoreTable = new Table();
+        scoreTable.setFillParent(true);
+        scoreTable.top().left().pad(20); // Put it in the top left
+        scoreTable.add(scoreLabel);
+
+        uiStage.addActor(scoreTable);
+
         Texture pauseTex = new Texture(Gdx.files.internal("Pause.png"));
         ImageButton pauseButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(pauseTex)));
 
