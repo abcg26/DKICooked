@@ -1,4 +1,4 @@
-package io.github.DKICooked.physics;
+package io.github.DKICooked.gameLogic.physics;
 
 import com.badlogic.gdx.math.MathUtils;
 
