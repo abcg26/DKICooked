@@ -69,14 +69,14 @@ public class PlayerPhysicsProcessor {
         body.applyHorizontalInput(input, dt);
         player.moveBy(body.velocityX * dt, 0);
 
-        // Screen Bounce
+// Screen Bounce
         if (player.getX() < 0 || player.getX() + player.getWidth() > 800) {
             body.velocityX *= -1.25f;
             stunTime = 0.25f;
             player.setX(MathUtils.clamp(player.getX(), 0, 800 - player.getWidth()));
         }
 
-        // Wall Collision
+// Wall Collision
         for (Platform p : platforms) {
             float topOfSlab = Math.max(p.y1, p.y2);
             float bottomOfSlab = Math.min(p.y1, p.y2) - p.thickness;

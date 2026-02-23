@@ -13,11 +13,22 @@ public class Platform {
         this.y2 = y2;
     }
 
-    public float getSurfaceY(float worldX) {
-        if (worldX < x1 || worldX > x2) return -1;
+    public float getSurfaceY(float x) {
+        float wallVisualWidth = 16f;
+        float detectionBuffer = 2f; // Makes landing slightly more forgiving
 
-        float t = (worldX - x1) / (x2 - x1);
-        return y1 + t * (y2 - y1);
+        if (Math.abs(x1 - x2) < 2f) { // Wall
+            float half = (wallVisualWidth / 2f) + detectionBuffer;
+            if (x >= x1 - half && x <= x1 + half) {
+                return Math.max(y1, y2);
+            }
+        } else {
+            // Horizontal Platform
+            if (x >= Math.min(x1, x2) && x <= Math.max(x1, x2)) {
+                return y1;
+            }
+        }
+        return -1;
     }
 
 
