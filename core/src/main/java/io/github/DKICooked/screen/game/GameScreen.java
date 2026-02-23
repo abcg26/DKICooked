@@ -32,7 +32,6 @@ public class GameScreen extends BaseScreen {
     private final Main main;
     private final LevelGenerator generator = new LevelGenerator();
 
-    // The "Source of Truth" for physics and rendering
     private final Array<Platform> activePlatforms = new Array<>();
     private final IntMap<Chunk> chunks = new IntMap<>();
 
@@ -61,19 +60,16 @@ public class GameScreen extends BaseScreen {
     public GameScreen(Main main) {
         this.main = main;
 
-        // Setup Player
         player = new PlayerActor();
         player.setSize(40, 60);
-        player.setPosition(400, 150); // Start middle-bottom
+        player.setPosition(400, 150);
         stage.addActor(player);
 
         sprite = new PlayerSprite(player);
 
-        // Initial world generation
         getOrCreateChunk(0);
         getOrCreateChunk(1);
 
-        // Pass initial platforms to player
         updateActivePlatformsList();
 
         displayPause();
@@ -85,7 +81,6 @@ public class GameScreen extends BaseScreen {
         if (chunks.containsKey(index)) return;
 
         Chunk chunk = new Chunk(index);
-        // Path-First Generation
         Array<Platform> generated = generator.generateChunk(chunk.yStart, CHUNK_HEIGHT);
         chunk.platforms.addAll(generated);
 
@@ -94,7 +89,6 @@ public class GameScreen extends BaseScreen {
 
     private void updateActivePlatformsList() {
         activePlatforms.clear();
-        // Only keep platforms from the previous, current, and next chunk for performance
         for (int i = currentChunk - 1; i <= currentChunk + 1; i++) {
             if (chunks.containsKey(i)) {
                 activePlatforms.addAll(chunks.get(i).platforms);
@@ -106,7 +100,6 @@ public class GameScreen extends BaseScreen {
     private void updateChunks() {
         int playerChunk = (int)(player.getY() / CHUNK_HEIGHT);
 
-        // Update Highest Point & Game Over Check
         if (playerChunk > highestChunkReached) highestChunkReached = playerChunk;
 
         if (highestChunkReached > 0 && playerChunk < highestChunkReached - 1) {
@@ -114,7 +107,6 @@ public class GameScreen extends BaseScreen {
             return;
         }
 
-        // Chunk Management
         if (playerChunk != currentChunk) {
             currentChunk = playerChunk;
             getOrCreateChunk(currentChunk);
@@ -141,16 +133,13 @@ public class GameScreen extends BaseScreen {
 
     @Override
     public void render(float delta) {
-        // 1. Clear Screen
         ScreenUtils.clear(0.05f, 0.05f, 0.08f, 1f);
 
-        // 2. Logic Update
         if (!Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
             updateChunks();
             stage.act(delta);
         }
 
-        // 3. Render Platforms (World Layer)
         DebugRenderer.begin(stage.getCamera());
         DebugRenderer.renderer.setColor(Color.RED);
         for (Platform p : activePlatforms) {
@@ -158,10 +147,8 @@ public class GameScreen extends BaseScreen {
         }
         DebugRenderer.end();
 
-        // 4. Render Stage (UI/Actors)
         stage.draw();
 
-        // 5. Render Player Sprite (Entity Layer)
         var batch = stage.getBatch();
         batch.setProjectionMatrix(stage.getCamera().combined);
         batch.begin();
@@ -177,13 +164,12 @@ public class GameScreen extends BaseScreen {
         pauseButton = new ImageButton(pauseStyle);
 
         uiTable = new Table();
-        uiTable.setFillParent(true); // This makes the table the size of the screen
+        uiTable.setFillParent(true);
         uiTable.top().right();
         uiTable.add(pauseButton).size(40, 40).pad(10);
 
         stage.addActor(uiTable);
 
-        // Initialize Pause Screen Logic
         pause = new PausedScreen(() -> {
             paused = false;
             pause.toggle(false);

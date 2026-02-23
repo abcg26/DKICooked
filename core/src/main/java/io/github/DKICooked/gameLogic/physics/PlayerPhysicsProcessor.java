@@ -8,11 +8,9 @@ import io.github.DKICooked.entities.Platform;
 import io.github.DKICooked.entities.PlayerActor;
 
 public class PlayerPhysicsProcessor {
-    // Reference to the Actor to move it
     private final PlayerActor player;
     private final PhysicsBody body;
 
-    // State variables moved from PlayerActor
     public float jumpCharge = 0f;
     public final float maxJumpCharge = 900f;
     public final float chargeRate = 1600f;
@@ -28,26 +26,20 @@ public class PlayerPhysicsProcessor {
     }
 
     public void update(float dt, Array<Platform> platforms) {
-        // 1. CAPTURE PREVIOUS STATE
         float oldX = player.getX();
         float oldY = player.getY();
         float oldHeadY = oldY + player.getHeight();
 
-        // 2. TIMERS & INPUT
         boolean space = Gdx.input.isKeyPressed(Input.Keys.SPACE);
         if (jumpCooldown > 0f) jumpCooldown -= dt;
         if (stunTime > 0f) stunTime -= dt;
 
-        // 3. JUMP LOGIC
         handleJump(dt, space);
 
-        // 4. HORIZONTAL PHASE
         handleHorizontal(dt, oldX, platforms);
 
-        // 5. VERTICAL PHASE
         handleVertical(dt, oldY, oldHeadY, platforms);
 
-        // 6. VISUALS
         if (body.velocityX > 0.1f) facingRight = true;
         else if (body.velocityX < -0.1f) facingRight = false;
     }

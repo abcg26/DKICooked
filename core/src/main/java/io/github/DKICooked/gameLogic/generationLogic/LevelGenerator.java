@@ -10,7 +10,6 @@ public class LevelGenerator {
     private final float MAX_JUMP_H = 225f;
     private final float MAX_JUMP_W = 300f;
 
-    // Safety padding to prevent platforms from being "shoulder-to-shoulder"
     private final float HORIZONTAL_PADDING = 40f;
     private final float VERTICAL_PADDING = 60f;
 
@@ -48,18 +47,14 @@ public class LevelGenerator {
         float nX = MathUtils.clamp(curX + jumpX, MARGIN, SCREEN_WIDTH - MARGIN);
         float nY = curY + jumpY;
 
-        // Create a temporary platform object to test against existing ones
         Platform p = new Platform(nX - 60, nY, nX + 60, nY);
 
         if (isPathPlayable(p, platforms)) {
             p.thickness = MathUtils.randomBoolean(0.3f) ? 40f : 10f;
 
-            // Thick Wall Logic (Integrated from previous fix)
             if (MathUtils.randomBoolean(0.3f)) {
                 float wallThickness = 12f;
-                // If moving right, put wall on right edge. If left, put on left.
                 float wallX = (nX > curX) ? p.x2 - wallThickness : p.x1;
-                // Vertical wall: x1 == x2 (The draw method will apply thickness)
                 platforms.add(new Platform(wallX, p.y1, wallX, p.y1 + 100));
             }
 
@@ -69,25 +64,21 @@ public class LevelGenerator {
         }
 
         lastX = curX;
-        return curY + 30f; // Nudge and try again
+        return curY + 30f;
     }
 
     private boolean isPathPlayable(Platform target, Array<Platform> existing) {
         for (Platform other : existing) {
-            // Check for AABB (Axis-Aligned Bounding Box) overlap with padding
             boolean xOverlap = target.x1 - HORIZONTAL_PADDING < other.x2 &&
                 target.x2 + HORIZONTAL_PADDING > other.x1;
 
             boolean yOverlap = target.y1 - VERTICAL_PADDING < other.y2 &&
                 target.y2 + VERTICAL_PADDING > other.y1;
 
-            // If they overlap in both X and Y, it's a collision
             if (xOverlap && yOverlap) {
                 return false;
             }
 
-            // Headroom check: Ensure there isn't a platform directly above
-            // the target that would bonk the player's head immediately
             if (xOverlap && other.y1 > target.y1 && (other.y1 - target.y1) < 160f) {
                 return false;
             }

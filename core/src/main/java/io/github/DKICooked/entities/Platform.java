@@ -13,12 +13,9 @@ public class Platform {
         this.y2 = y2;
     }
 
-    /** Returns the Y height of the slope at a specific world X.
-     Returns -1 if the X is outside the platform bounds. */
     public float getSurfaceY(float worldX) {
         if (worldX < x1 || worldX > x2) return -1;
 
-        // Linear Interpolation (Lerp) math
         float t = (worldX - x1) / (x2 - x1);
         return y1 + t * (y2 - y1);
     }
@@ -28,18 +25,13 @@ public class Platform {
         float width = Math.abs(x2 - x1);
         float height = Math.abs(y2 - y1);
 
-        // Determine drawing parameters based on orientation
         if (width > height) {
             renderer.line(x1, y1, x2, y2);
-            // Draw the "body" to give it thickness
             renderer.line(x1, y1 - thickness, x2, y2 - thickness);
             renderer.line(x1, y1, x1, y1 - thickness);
             renderer.line(x2, y2, x2, y2 - thickness);
         } else {
-            // VERTICAL WALL
-            // Here we apply the thickness to the X-axis
             float wallThickness = 8f;
-            // Center the thickness on the wall's X coordinate
             renderer.rect(x1 - (wallThickness / 2), y1, wallThickness, height);
         }
     }
