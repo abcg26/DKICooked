@@ -39,7 +39,7 @@ public class PlayerSprite {
         stateTime += Gdx.graphics.getDeltaTime();
 
         TextureRegion frame;
-        if (!player.isGrounded() && Math.abs(player.getBody().velocityY) > 0.1f) {
+        if (!player.isGrounded() || Math.abs(player.getBody().velocityY) > 0.1f) {
             frame = jumpRegion;
         } else if (Math.abs(player.getBody().velocityX) > 0.5f) {
             frame = walkAnim.getKeyFrame(stateTime, true);
