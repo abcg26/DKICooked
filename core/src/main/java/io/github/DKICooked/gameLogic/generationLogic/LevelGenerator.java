@@ -59,11 +59,11 @@ public class LevelGenerator {
         // 3. THE "ARC" CHECK: Ensure nothing blocks the head mid-jump
         if (isPathPlayable(curX, curY, p, platforms)) {
             // Sporadic Architecture: Thickness + Occasional Back-Walls
-            p.thickness = MathUtils.randomBoolean(0.3f) ? 50f : 10f;
+            p.thickness = MathUtils.randomBoolean(0.3f) ? 40f : 10f;
 
             if (MathUtils.randomBoolean(0.3f)) { // Only 30% have walls
                 float wallX = (nX > curX) ? p.x2 - 12 : p.x1;
-                platforms.add(new Platform(wallX, p.y1, wallX + 12, p.y1 + 100));
+                platforms.add(new Platform(wallX, p.y1, wallX, p.y1 + 100));
             }
 
             platforms.add(p);

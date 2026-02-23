@@ -23,12 +23,24 @@ public class Platform {
         return y1 + t * (y2 - y1);
     }
 
+
     public void draw(ShapeRenderer renderer) {
-        // Draw the top surface (the walk-line)
-        renderer.line(x1, y1, x2, y2);
-        // Draw the "body" to give it thickness
-        renderer.line(x1, y1 - thickness, x2, y2 - thickness);
-        renderer.line(x1, y1, x1, y1 - thickness);
-        renderer.line(x2, y2, x2, y2 - thickness);
+        float width = Math.abs(x2 - x1);
+        float height = Math.abs(y2 - y1);
+
+        // Determine drawing parameters based on orientation
+        if (width > height) {
+            renderer.line(x1, y1, x2, y2);
+            // Draw the "body" to give it thickness
+            renderer.line(x1, y1 - thickness, x2, y2 - thickness);
+            renderer.line(x1, y1, x1, y1 - thickness);
+            renderer.line(x2, y2, x2, y2 - thickness);
+        } else {
+            // VERTICAL WALL
+            // Here we apply the thickness to the X-axis
+            float wallThickness = 8f;
+            // Center the thickness on the wall's X coordinate
+            renderer.rect(x1 - (wallThickness / 2), y1, wallThickness, height);
+        }
     }
 }
