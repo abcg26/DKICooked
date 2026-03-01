@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.DKICooked.Main;
 import io.github.DKICooked.entities.Platform;
+import io.github.DKICooked.entities.PlatformTiles;
 import io.github.DKICooked.entities.PlayerActor;
 import io.github.DKICooked.entities.PlayerSprite;
 import io.github.DKICooked.gameLogic.WorldManager;
@@ -39,6 +40,9 @@ public class GameScreen extends BaseScreen {
     private final PlayerSprite sprite;
 
     private SoundPlayer soundPlayer;
+
+    private Texture platformTileTexture;
+    private PlatformTiles platformTile;
 
     // THE SECOND STAGE
     private final Stage uiStage;
@@ -63,6 +67,10 @@ public class GameScreen extends BaseScreen {
 
         // 2. Setup World
         this.world = new WorldManager();
+
+        platformTileTexture = new Texture(Gdx.files.internal("wallTile.png"));
+        platformTile = new PlatformTiles(platformTileTexture);
+
         player = new PlayerActor(soundPlayer);
         player.setSize(40, 60);
         player.setPosition(400, 150);
@@ -135,24 +143,25 @@ public class GameScreen extends BaseScreen {
         uiStage.act(delta);
 
         // --- DRAWING ---
-        // 1. Platforms (World)
-        DebugRenderer.begin(stage.getCamera());
-        DebugRenderer.renderer.setColor(Color.RED);
-        for (Platform p : world.getActivePlatforms()) p.draw(DebugRenderer.renderer);
-        DebugRenderer.end();
-
-        // 2. Player Actor (World)
+        // 1. Player Actor (Invisible logic layer)
         stage.draw();
 
-        // 3. Player Sprite (World)
+        // 2. Draw Platforms AND Player Sprite together!
         var batch = stage.getBatch();
         batch.setProjectionMatrix(stage.getCamera().combined);
         batch.begin();
+
+        // Draw all the platforms first (so they go behind the player if they overlap)
+        for (Platform p : world.getActivePlatforms()) {
+            platformTile.render((com.badlogic.gdx.graphics.g2d.SpriteBatch) batch, p);
+        }
+
+        // Draw the player sprite on top
         sprite.draw(batch, player);
+
         batch.end();
 
-        // 4. UI Layer (Fixed)
-        // We use uiStage's camera, which is always at 0,0
+        // 3. UI Layer (Fixed)
         uiStage.draw();
     }
 
@@ -210,6 +219,8 @@ public class GameScreen extends BaseScreen {
     @Override
     public void dispose() {
         uiStage.dispose();
-        // BaseScreen usually handles 'stage'
+        if (platformTileTexture != null) {
+            platformTileTexture.dispose(); // Crucial for preventing memory leaks!
+        }// BaseScreen usually handles 'stage'
     }
 }

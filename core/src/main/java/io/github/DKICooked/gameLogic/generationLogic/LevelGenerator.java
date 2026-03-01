@@ -17,6 +17,8 @@ public class LevelGenerator {
     private float anchor2X = 500f, anchor2Y = 50f;
     private float lastX;
 
+    private final float TILE_SIZE = 40f;
+
     public Array<Platform> generateChunk(float chunkYStart, float chunkHeight) {
         Array<Platform> platforms = new Array<>();
         float chunkTop = chunkYStart + chunkHeight;
@@ -47,14 +49,17 @@ public class LevelGenerator {
         float nX = MathUtils.clamp(curX + jumpX, MARGIN, SCREEN_WIDTH - MARGIN);
         float nY = curY + jumpY;
 
-        Platform p = new Platform(nX - 60, nY, nX + 60, nY);
+        float halfWidth = (TILE_SIZE * 3) / 2;
+        Platform p = new Platform(nX - halfWidth, nY, nX + halfWidth, nY);
 
         if (isPathPlayable(p, platforms)) {
-            p.thickness = MathUtils.randomBoolean(0.3f) ? 40f : 10f;
+            p.thickness = MathUtils.randomBoolean(0.3f) ? TILE_SIZE * 2 : TILE_SIZE;
 
             if (MathUtils.randomBoolean(0.3f)) {
                 float wallThickness = 12f;
                 float wallX = (nX > curX) ? p.x2 - wallThickness : p.x1;
+
+                float wallHeight = TILE_SIZE * 3;
                 platforms.add(new Platform(wallX, p.y1, wallX, p.y1 + 100));
             }
 
