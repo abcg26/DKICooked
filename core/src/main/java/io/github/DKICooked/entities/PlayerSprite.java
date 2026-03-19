@@ -14,6 +14,8 @@ public class PlayerSprite {
     private Texture jumpText;
     private Texture chargeText;
     private final TextureRegion chargeReg;
+    private final TextureRegion deathRegion;
+    private Texture deathText;
 
     private float stateTime;
 
@@ -31,6 +33,9 @@ public class PlayerSprite {
                 new TextureRegion(walk3)
                 );
 
+            deathText = new Texture(Gdx.files.internal("dead.png")); // Your death image
+            deathRegion = new TextureRegion(deathText);
+
             jumpText = new Texture(Gdx.files.internal("tJ.png"));
             jumpRegion = new TextureRegion(jumpText);
 
@@ -38,8 +43,6 @@ public class PlayerSprite {
             chargeReg = new TextureRegion(chargeText);
 
             stateTime = 0f;
-
-
     }
 
     public void draw(Batch batch, PlayerActor player) {
@@ -60,13 +63,31 @@ public class PlayerSprite {
             frame = chargeReg;
         }
 
+        if (player.isDead()) {
+            frame = deathRegion;
+        } else if (!player.isGrounded() || Math.abs(player.getBody().velocityY) > 0.1f) {
+            frame = jumpRegion;
+        } else if (Math.abs(player.getBody().velocityX) > 0.5f) {
+            frame = walkAnim.getKeyFrame(stateTime, true);
+        } else {
+            stateTime = 0f;
+            frame = idleRegion;
+        }
+
         if (!player.isFacingRight() && frame.isFlipX()) {
             frame.flip(true, false);
         } else if (player.isFacingRight() && !frame.isFlipX()) {
             frame.flip(true, false);
         }
 
-        batch.draw(frame, player.getX(), player.getY(), player.getWidth(), player.getHeight());
+        batch.draw(
+            frame,
+            player.getX(), player.getY(),
+            player.getOriginX(), player.getOriginY(), // The "hinge" for rotation
+            player.getWidth(), player.getHeight(),
+            player.getScaleX(), player.getScaleY(),
+            player.getRotation()
+        );
     }
 
 }
