@@ -72,7 +72,7 @@ public class GameScreen extends BaseScreen {
 
     public GameScreen(Main main) {
         this.main = main;
-        backgroundTexture = new Texture(Gdx.files.internal("background.png"));
+        backgroundTexture = new Texture(Gdx.files.internal("background_new.png"));
         playerFallenTexture = new Texture(Gdx.files.internal("dead.png"));
         soundPlayer = new SoundPlayer();
         soundPlayer.playMusic();
