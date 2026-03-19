@@ -12,6 +12,7 @@ public class PlayerActor extends Actor {
     private Array<Platform> platforms = new Array<>();
     private float accumulator = 0f;
     private static final float STEP = 1f / 180f;
+    private boolean dead = false;
 
     public PlayerActor(SoundPlayer soundPlayer) {
         this.physicsProcessor = new PlayerPhysicsProcessor(this, body, soundPlayer);
@@ -28,6 +29,8 @@ public class PlayerActor extends Actor {
     }
 
     // Delegate getters to the processor
+    public void setDead(boolean dead) { this.dead = dead; }
+    public boolean isDead() { return dead; }
     public boolean isGrounded() { return physicsProcessor.isGrounded; }
     public boolean isCharging() { return physicsProcessor.isCharging; }
     public float getJumpCharge() { return physicsProcessor.jumpCharge; }
