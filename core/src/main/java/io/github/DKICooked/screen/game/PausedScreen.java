@@ -4,11 +4,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Scaling;
@@ -21,9 +19,11 @@ public class PausedScreen extends Table {
     private Image resume;
     private Image exit;
     private final Main main;
+    private final Runnable onExit;
 
-    public PausedScreen(Runnable onResume, Main main) {
+    public PausedScreen(Runnable onResume, Runnable onExit, Main main) {
         this.main = main;
+        this.onExit = onExit;
         setFillParent(true);
 
         //For bg
@@ -81,6 +81,7 @@ public class PausedScreen extends Table {
         exit.addListener(new ClickListener() {
            @Override
            public void clicked(InputEvent event, float x, float y) {
+               onExit.run();
                main.setScreen(new MainMenuScreen(main));
            }
         });

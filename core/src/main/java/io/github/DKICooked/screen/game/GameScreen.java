@@ -267,7 +267,7 @@ public class GameScreen extends BaseScreen {
         pauseOverlay = new PausedScreen(() -> {
             paused = false;
             pauseOverlay.toggle(false);
-        }, main);
+        }, soundPlayer::stopMusic, main);
         uiStage.addActor(pauseOverlay);
 
         pauseButton.addListener(new ClickListener() {
@@ -320,6 +320,7 @@ public class GameScreen extends BaseScreen {
         retryButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                soundPlayer.stopMusic();
                 main.setScreen(new GameScreen(main, selection));
             }
         });
