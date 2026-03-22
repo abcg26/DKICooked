@@ -65,7 +65,7 @@ public class LevelGenerator {
             float cx = node[0];
             float cy = node[1];
             Platform p = new Platform(cx - PLATFORM_HALF, cy, cx + PLATFORM_HALF, cy);
-            p.thickness = MathUtils.randomBoolean(0.3f) ? TILE_SIZE * 2 : TILE_SIZE;
+            p.thickness = MathUtils.randomBoolean(0.3f) ? TILE_SIZE * 1.5f : TILE_SIZE;
             platforms.add(p);
         }
 
@@ -197,7 +197,7 @@ public class LevelGenerator {
             float wallX = MathUtils.randomBoolean() ? node[0] + PLATFORM_HALF : node[0] - PLATFORM_HALF;
             wallX = MathUtils.clamp(wallX, MARGIN, SCREEN_WIDTH - MARGIN);
 
-            float wallHeight = TILE_SIZE * MathUtils.random(2f, 4f);
+            float wallHeight = TILE_SIZE * MathUtils.random(2, 3);
             float baseY = node[1]; // sits on top of the platform surface
             platforms.add(new Platform(wallX, baseY, wallX, baseY + wallHeight));
         }

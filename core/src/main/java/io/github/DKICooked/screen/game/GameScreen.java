@@ -84,7 +84,7 @@ public class GameScreen extends BaseScreen {
         // World
         this.world = new WorldManager();
 
-        platformTileTexture = new Texture(Gdx.files.internal("wallTile.png"));
+        platformTileTexture = new Texture(Gdx.files.internal("wallTile.jpg"));
         platformTile        = new PlatformTiles(platformTileTexture);
 
         player = new PlayerActor(soundPlayer);
