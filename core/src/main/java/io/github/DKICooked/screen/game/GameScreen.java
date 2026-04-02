@@ -148,6 +148,10 @@ public class GameScreen extends BaseScreen {
                 lastSnapChunk = currentChunk;
             }
 
+            if (asteroidManager.isRaidActive()) {
+                checkAsteroidCollisions();
+            }
+
             if (highestChunkReached > 0 && currentChunk < highestChunkReached - 1) {
                 startDeathSequence();
             }
@@ -160,6 +164,8 @@ public class GameScreen extends BaseScreen {
             scoreBuilder.append("Best: ").append(recordHeight).append("m");
             scoreLabel.setText(scoreBuilder);
 
+
+
         } else if (currentState == State.DYING) {
             deathTimer += delta;
             float bounce = (float) Math.sin(deathTimer * 5) * 50f;
@@ -168,12 +174,6 @@ public class GameScreen extends BaseScreen {
             player.rotateBy(400 * delta);
 
             if (deathTimer >= DEATH_DURATION) showGameOverScreen();
-        }
-
-        if (currentState == State.PLAYING) {
-            if (asteroidManager.isRaidActive()) {
-                checkAsteroidCollisions();
-            }
         }
 
         stage.act(delta);
@@ -203,17 +203,14 @@ public class GameScreen extends BaseScreen {
     private void checkAsteroidCollisions() {
         if (currentState != State.PLAYING) return;
 
-        // Iterate through all actors on the stage
         for (com.badlogic.gdx.scenes.scene2d.Actor actor : stage.getActors()) {
             if (actor instanceof AsteroidActor) {
                 AsteroidActor meteor = (AsteroidActor) actor;
 
-                // Use Intersector to check Circle vs Rectangle
                 if (com.badlogic.gdx.math.Intersector.overlaps(meteor.getCollisionCircle(), player.getCollisionRect())) {
-                    System.out.println("CRITICAL HIT: Anomaly impact!");
+                    // Trigger the sequence, but let updateLogic handle the timer
                     startDeathSequence();
-                    showGameOverScreen();
-                    break; // Stop checking to prevent multiple death triggers
+                    break;
                 }
             }
         }
@@ -225,26 +222,13 @@ public class GameScreen extends BaseScreen {
         ScreenUtils.clear(0.05f, 0.05f, 0.08f, 1f);
 
         // --- 1. LOGIC UPDATES ---
-        if (!paused && currentState == State.PLAYING) {
+        if (!paused && (currentState == State.PLAYING || currentState == State.DYING)) {
             updateLogic(delta);
 
-            boolean isAnomalyZone = player.getY() >= 1500 && player.getY() <= 2000;
+            boolean isAnomalyZone = player.getY() >= 1500 && player.getY() <= 3000;
 
-            if (isAnomalyZone) {
-                // Fade the tint IN
-                backgroundTintAlpha += delta * FADE_SPEED;
-                if (backgroundTintAlpha > 1f) backgroundTintAlpha = 1f;
-
-                if (preRaidTimer < 3.0f) {
-                    preRaidTimer += delta;
-                } else {
-                    asteroidManager.update(delta, player.getY(), stage);
-                }
-            } else {
-                // Fade the tint OUT
-                backgroundTintAlpha -= delta * FADE_SPEED;
-                if (backgroundTintAlpha < 0f) backgroundTintAlpha = 0f;
-                preRaidTimer = 0;
+            if (currentState == State.PLAYING) {
+                handleAnomalyLogic(delta); // Move your if(isAnomalyZone) logic here for cleanliness
             }
         }
 
@@ -305,6 +289,26 @@ public class GameScreen extends BaseScreen {
         }
     }
 
+    private void handleAnomalyLogic(float delta) {
+        boolean isAnomalyZone = player.getY() >= 1500 && player.getY() <= 3000;
+
+        if (isAnomalyZone) {
+            // Fade the tint IN
+            backgroundTintAlpha += delta * FADE_SPEED;
+            if (backgroundTintAlpha > 1f) backgroundTintAlpha = 1f;
+
+            if (preRaidTimer < 2.0f) {
+                preRaidTimer += delta;
+            } else {
+                asteroidManager.update(delta, player.getY(), stage);
+            }
+        } else {
+            // Fade the tint OUT
+            backgroundTintAlpha -= delta * FADE_SPEED;
+            if (backgroundTintAlpha < 0f) backgroundTintAlpha = 0f;
+            preRaidTimer = 0;
+        }
+    }
     // ── UI setup ──────────────────────────────────────────────────────────────
 
     public void setupUI() {
