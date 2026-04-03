@@ -1,32 +1,36 @@
 {
 "leaderBoard": [
 	{
-		"name": "DSA",
-		"score": 13
+		"name": "WER",
+		"score": 28
 	},
 	{
-		"name": "DSA",
-		"score": 13
+		"name": "WER",
+		"score": 25
 	},
 	{
-		"name": "DSA",
+		"name": "WRA",
+		"score": 19
+	},
+	{
+		"name": "JER",
+		"score": 17
+	},
+	{
+		"name": "WER",
 		"score": 12
 	},
 	{
-		"name": "DSA",
-		"score": 12
+		"name": "ALE",
+		"score": 8
 	},
 	{
-		"name": "AAA",
+		"name": "WEA",
+		"score": 4
+	},
+	{
+		"name": "WER",
 		"score": 3
-	},
-	{
-		"name": "213",
-		"score": 1
-	},
-	{
-		"name": "231",
-		"score": 1
 	}
 ]
 }

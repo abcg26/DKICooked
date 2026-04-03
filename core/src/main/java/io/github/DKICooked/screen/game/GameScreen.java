@@ -396,7 +396,7 @@ public class GameScreen extends BaseScreen {
                 pauseOverlay.toggle(false);
             },
             () -> { // Quit function (The "Give Up" logic)
-                paused = false;             // Unpause logic
+                paused = false;
                 pauseOverlay.toggle(false); // Hide the pause menu
                 showGameOverScreen();       // Trigger your existing GameOver UI
             },
@@ -461,6 +461,7 @@ public class GameScreen extends BaseScreen {
                 nameInput.setVisible(false);
                 submitBtn.setVisible(false);
                 retryButton.setVisible(true);
+                soundPlayer.stopMusic();
                 main.setScreen(new LeaderboardScreen(main));
             }
         });
