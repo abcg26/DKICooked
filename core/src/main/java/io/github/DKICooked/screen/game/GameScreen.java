@@ -28,6 +28,7 @@ import io.github.DKICooked.gameLogic.SaveData;
 import io.github.DKICooked.gameLogic.SaveManager;
 import io.github.DKICooked.gameLogic.WorldManager;
 import io.github.DKICooked.screen.BaseScreen;
+import io.github.DKICooked.screen.main.MainMenuScreen;
 
 public class GameScreen extends BaseScreen {
     private final String selection;
@@ -78,7 +79,8 @@ public class GameScreen extends BaseScreen {
     private Table gameOverTable;
     private TextField nameInput;
     private TextButton submitBtn;
-    private ImageButton retryButton;
+    private TextButton retryBtn;
+    private TextButton quitBtn;
 
     public GameScreen(Main main, String selection) {
         this.main = main;
@@ -216,13 +218,13 @@ public class GameScreen extends BaseScreen {
         if (isHighScore) {
             nameInput.setVisible(true);
             submitBtn.setVisible(true);
-            retryButton.setVisible(false);
+            retryBtn.setVisible(false);
             nameInput.setText("");
             uiStage.setKeyboardFocus(nameInput);
         } else {
             nameInput.setVisible(false);
             submitBtn.setVisible(false);
-            retryButton.setVisible(true);
+            retryBtn.setVisible(true);
         }
 
         gameOverTable.invalidateHierarchy();
@@ -417,13 +419,13 @@ public class GameScreen extends BaseScreen {
 
         TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle();
         btnStyle.font = scoreFont;
-        btnStyle.fontColor = Color.WHITE;
-        btnStyle.up = whiteDrawable.tint(new Color(0.1f, 0.1f, 0.1f, 0.5f));
+        btnStyle.fontColor = Color.valueOf("f8c72c");
+        btnStyle.overFontColor =  Color.valueOf("#ef901f");;
 
         TextField.TextFieldStyle tfStyle = new TextField.TextFieldStyle();
         tfStyle.font = scoreFont;
-        tfStyle.fontColor = Color.YELLOW;
-        tfStyle.cursor = whiteDrawable.tint(Color.YELLOW);
+        tfStyle.fontColor = Color.valueOf("f8c72c");
+        tfStyle.cursor = whiteDrawable.tint(Color.valueOf("f8c72c"));
         tfStyle.background = whiteDrawable.tint(new Color(0.2f, 0.2f, 0.2f, 0.8f));
 
         finalScoreLabel = new Label("Final Score: 0m", new Label.LabelStyle(scoreFont, Color.WHITE));
@@ -431,8 +433,8 @@ public class GameScreen extends BaseScreen {
         nameInput.setMaxLength(3);
         nameInput.setAlignment(Align.center);
         submitBtn = new TextButton("SUBMIT", btnStyle);
-        retryTex = new Texture(Gdx.files.internal("retry.png"));
-        retryButton = new ImageButton(new TextureRegionDrawable(new TextureRegion(retryTex)));
+        retryBtn = new TextButton("RETRY", btnStyle);
+        quitBtn = new TextButton("QUIT", btnStyle);
 
         gameOverTable = new Table();
         gameOverTable.setFillParent(true);
@@ -446,9 +448,10 @@ public class GameScreen extends BaseScreen {
 
         gameOverTable.add(goImage).size(400, 75).padBottom(20).row();
         gameOverTable.add(finalScoreLabel).padBottom(20).row();
-        gameOverTable.add(nameInput).size(150, 50).padBottom(10).row();
-        gameOverTable.add(submitBtn).size(200, 50).padBottom(10).row();
-        gameOverTable.add(retryButton).size(100, 100);
+        gameOverTable.add(nameInput).size(150, 50).padBottom(5).row();
+        gameOverTable.add(submitBtn).size(200, 50).padBottom(5).row();
+        gameOverTable.add(retryBtn).size(100, 50).center().row();
+        gameOverTable.add(quitBtn).size(100, 50).center();
 
         submitBtn.addListener(new ClickListener() {
             @Override
@@ -460,16 +463,23 @@ public class GameScreen extends BaseScreen {
                 SaveManager.save(data);
                 nameInput.setVisible(false);
                 submitBtn.setVisible(false);
-                retryButton.setVisible(true);
+                retryBtn.setVisible(true);
                 soundPlayer.stopMusic();
                 main.setScreen(new LeaderboardScreen(main));
             }
         });
 
-        retryButton.addListener(new ClickListener() {
+        retryBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 soundPlayer.stopMusic();
                 main.setScreen(new GameScreen(main, selection));
+            }
+        });
+
+        quitBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                soundPlayer.stopMusic();
+                main.setScreen(new MainMenuScreen(main));
             }
         });
 
@@ -497,7 +507,6 @@ public class GameScreen extends BaseScreen {
         if (platformTileTexture != null) platformTileTexture.dispose();
         if (backgroundTexture != null) backgroundTexture.dispose();
         if (titleTex != null) titleTex.dispose();
-        if (retryTex != null) retryTex.dispose();
         if (whitePixel != null) whitePixel.dispose();
         if (asteroidTex != null) asteroidTex.dispose();
         if (anomalyTex != null) anomalyTex.dispose();

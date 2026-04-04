@@ -14,12 +14,18 @@ public class SaveData {
     }
 
     public void addScore(String name, int score) {
-        leaderBoard.add(new LBScore(name, score));
+        LBScore newEntry = new LBScore(name, score);
 
-        // Sort: Highest score first (b - a)
-        leaderBoard.sort((a, b) -> Integer.compare(b.score, a.score));
+        // 1. Find the first index where the existing score is SMALLER than the new one
+        int insertIndex = 0;
+        while (insertIndex < leaderBoard.size && leaderBoard.get(insertIndex).score >= score) {
+            insertIndex++;
+        }
 
-        // Truncate to keep only the top 10 players
+        // 2. Insert it (LibGDX Array.insert handles the "shifting" for you)
+        leaderBoard.insert(insertIndex, newEntry);
+
+        // 3. Keep it to a Top 10
         if (leaderBoard.size > 10) {
             leaderBoard.truncate(10);
         }

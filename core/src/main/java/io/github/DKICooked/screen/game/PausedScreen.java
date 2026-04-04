@@ -52,7 +52,7 @@ public class PausedScreen extends Table {
         )));
 
         Container<Image> pauseWrapper = new Container<>(pausedImage);
-        add(pauseWrapper).size(330, 100).padBottom(50).row();
+        add(pauseWrapper).size(400, 100).padBottom(50).row();
 
         // 4. Buttons
         TextButton resumeBtn = new TextButton("RESUME", btnStyle);

@@ -11,16 +11,14 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.DKICooked.Main;
 import io.github.DKICooked.screen.BaseScreen;
+import io.github.DKICooked.screen.main.MainMenuScreen;
 
 public class CharacterSelectScreen extends BaseScreen {
     private final Main main;
@@ -30,7 +28,8 @@ public class CharacterSelectScreen extends BaseScreen {
     private BitmapFont customFont;
 
     // Define your custom hex color
-    private final Color goldColor = Color.valueOf("fed546");
+    private final Color yellowColor = Color.valueOf("f8c72c");
+    private final Color goldColor = Color.valueOf("#ef901f");
 
     public CharacterSelectScreen(Main main) {
         this.main = main;
@@ -96,6 +95,21 @@ public class CharacterSelectScreen extends BaseScreen {
         mainTable.add(jerickCard).pad(15);
         mainTable.add(timothyCard).pad(15);
 
+        TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle();
+        btnStyle.font = customFont;
+        btnStyle.fontColor = yellowColor;
+        btnStyle.overFontColor = goldColor;
+
+        TextButton backBtn = new TextButton("BACK TO MENU", btnStyle);
+        backBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                main.setScreen(new MainMenuScreen(main));
+            }
+        });
+
+        mainTable.row().colspan(3).padTop(30);
+        mainTable.add(backBtn);
         uiStage.addActor(mainTable);
     }
 
@@ -127,7 +141,7 @@ public class CharacterSelectScreen extends BaseScreen {
         descLabel.setVisible(false);
 
         Table borderTable = new Table();
-        borderTable.setBackground(cardDrawable.tint(goldColor));
+        borderTable.setBackground(cardDrawable.tint(yellowColor));
 
         Table innerTable = new Table();
         innerTable.setBackground(cardDrawable.tint(Color.BLACK));
@@ -151,7 +165,7 @@ public class CharacterSelectScreen extends BaseScreen {
             public void enter(InputEvent event, float x, float y, int pointer, Actor fromActor) {
                 cardButton.setScale(1.05f);
                 borderTable.setBackground(cardDrawable.tint(Color.WHITE));
-                nameLabel.setColor(goldColor);
+                nameLabel.setColor(yellowColor);
 
                 // 1. Make visible and show color
                 descLabel.setVisible(true);
@@ -166,7 +180,7 @@ public class CharacterSelectScreen extends BaseScreen {
             public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) {
                 if (pointer == -1) {
                     cardButton.setScale(1f);
-                    borderTable.setBackground(cardDrawable.tint(goldColor));
+                    borderTable.setBackground(cardDrawable.tint(yellowColor));
                     nameLabel.setColor(Color.WHITE);
 
                     // 1. Hide it so it takes up 0 space again

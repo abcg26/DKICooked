@@ -25,6 +25,7 @@ public class LeaderboardScreen extends BaseScreen {
     private final Main main;
     private BitmapFont customFont; // Declared here for class-wide use
     private Texture lbPic;
+    private Texture crownTex;
 
     public LeaderboardScreen(Main main) {
         this.main = main;
@@ -32,6 +33,7 @@ public class LeaderboardScreen extends BaseScreen {
         // 1. Initialize assets
         createFonts();
         this.lbPic = new Texture(Gdx.files.internal("LB.png"));
+        this.crownTex = new Texture(Gdx.files.internal("crown.png"));
 
         // 2. Set input processor so buttons work
         Gdx.input.setInputProcessor(stage);
@@ -43,7 +45,7 @@ public class LeaderboardScreen extends BaseScreen {
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("new_font.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
 
-        parameter.size = 22; // Adjusted size for list readability
+        parameter.size = 18; // Adjusted size for list readability
         parameter.color = Color.WHITE;
         parameter.shadowOffsetX = 2;
         parameter.shadowOffsetY = 2;
@@ -56,61 +58,80 @@ public class LeaderboardScreen extends BaseScreen {
     private void setupUI() {
         Table root = new Table();
         root.setFillParent(true);
+        //root.debug(); // Turn this on if you need to see where things are leaking
         stage.addActor(root);
 
-        // --- Header ---
+        // --- 1. Header Image ---
         Image titleImage = new Image(lbPic);
-        root.add(titleImage).size(500, 155).padBottom(-10).row();
+        titleImage.setOrigin(Align.center);
+        titleImage.addAction(Actions.forever(Actions.sequence(
+            Actions.moveBy(0, 10, 0.7f),
+            Actions.moveBy(0, -10, 0.7f)
+        )));
+        // We give the header a fixed height so it doesn't eat the whole screen
+        root.add(titleImage).size(400, 120).padTop(20).row();
 
-        // --- Leaderboard Table ---
+        // --- 2. Leaderboard Table ---
         Table scoreTable = new Table();
-        // scoreTable.debug(); // Uncomment this line to see the grid lines for alignment debugging
-
-        titleImage.addAction(
-            Actions.forever(
-                Actions.sequence(
-                    // Move UP 10 pixels over 0.7 seconds
-                    Actions.moveBy(0, 10, 0.7f),
-                    // Move DOWN 10 pixels over 0.7 seconds
-                    Actions.moveBy(0, -10, 0.7f)
-                )
-            )
-        );
-
         SaveData data = SaveManager.load();
         Label.LabelStyle whiteStyle = new Label.LabelStyle(customFont, Color.WHITE);
         Label.LabelStyle goldStyle = new Label.LabelStyle(customFont, Color.valueOf("fed546"));
+        Label.LabelStyle headerStyle = new Label.LabelStyle(customFont, Color.valueOf("fed546"));
 
+        scoreTable.padTop(-30);
+        // Header dashed line
+        // Top dashed line - change colspan to 4
+        scoreTable.add(new Label("- - - - - - - - - - - - - - - - - -", headerStyle)).colspan(4).center().row();
+
+// Headers - Add them as separate cells to match the columns below
+        scoreTable.add(new Label("| RANK", headerStyle)).left();
+        scoreTable.add(new Label("| NAME", headerStyle)).left().padLeft(10);
+        scoreTable.add(new Label("", headerStyle)).expandX(); // Header spacer
+        scoreTable.add(new Label("| DISTANCE |", headerStyle)).right();
+        scoreTable.row();
+
+// Bottom dashed line - change colspan to 4
+        scoreTable.add(new Label("- - - - - - - - - - - - - - - - - -", headerStyle)).colspan(4).center().padBottom(5).row();
+
+        // Data Rows
         for (int i = 0; i < data.leaderBoard.size; i++) {
             LBScore entry = data.leaderBoard.get(i);
             Label.LabelStyle currentStyle = (i == 0) ? goldStyle : whiteStyle;
 
-            // 1. Rank + Name (Combined or separate)
-            scoreTable.add(new Label((i + 1) + ". " + entry.name, currentStyle)).left();
+            // Column 1: RANK + CROWN
+            Table rankGroup = new Table();
+            if (i == 0) {
+                Image crown = new Image(crownTex);
+                rankGroup.add(crown).size(20, 20).padRight(5);
+            }
+            rankGroup.add(new Label(getOrdinal(i), currentStyle)).left();
+            scoreTable.add(rankGroup).left().width(80); // Fixed width keeps NAME column straight
 
-            // 2. The Dots
-            // Use a smaller string of dots and tell it to expand to fill the middle
-            Label dots = new Label(". . . . . . . . .", currentStyle);
-            dots.setAlignment(Align.center);
+            // Column 2: NAME
+            scoreTable.add(new Label(entry.name, currentStyle)).left().padLeft(10);
 
-            // expandX() is the magic—it pushes the name left and the score right
-            scoreTable.add(dots).expandX().fillX().padRight(10);
+            // Column 3: SPACER (The Magic Expand)
+            scoreTable.add(new Label("", headerStyle)).expandX().fillX();
 
-            // 3. The Score
-            scoreTable.add(new Label(entry.score + "m", currentStyle)).right();
+            // Column 4: DISTANCE
+            scoreTable.add(new Label(entry.score + "M", currentStyle)).right();
 
-            // 4. Move to the next line for the next player
-            scoreTable.row().padBottom(10);
+            scoreTable.row().padBottom(8);
         }
 
-        // Add the score list to the root with some side padding
-        root.add(scoreTable).width(500).padTop(-20).padBottom(-10).row();
+        // Bottom dashed line\
+        scoreTable.debug();
+        scoreTable.add(new Label("- - - - - - - - - - - - - - - - - -", headerStyle)).colspan(4).center().padTop(5).row();
 
-        // --- Navigation ---
+        // ADD SCORE TABLE TO ROOT
+        // .expandY() pushes the button to the bottom
+        root.add(scoreTable).width(380).expandY().row();
+
+        // --- 3. Navigation ---
         TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle();
         btnStyle.font = customFont;
-        btnStyle.fontColor = Color.WHITE;
-        btnStyle.overFontColor = Color.valueOf("fed546");
+        btnStyle.fontColor = Color.valueOf("fed546");
+        btnStyle.overFontColor = Color.valueOf("#ef901f");
 
         TextButton backBtn = new TextButton("BACK TO MENU", btnStyle);
         backBtn.addListener(new ClickListener() {
@@ -119,7 +140,20 @@ public class LeaderboardScreen extends BaseScreen {
                 main.setScreen(new MainMenuScreen(main));
             }
         });
-        root.add(backBtn).size(250, 60);
+
+        // Add button with padding at the very bottom
+        root.add(backBtn).size(220, 50).padBottom(55);
+    }
+
+    private String getOrdinal(int i) {
+        int n = i + 1;
+        if (n >= 11 && n <= 13) return n + "th";
+        switch (n % 10) {
+            case 1:  return n + "st";
+            case 2:  return n + "nd";
+            case 3:  return n + "rd";
+            default: return n + "th";
+        }
     }
 
     @Override

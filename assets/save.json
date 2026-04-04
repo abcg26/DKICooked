@@ -17,20 +17,28 @@
 		"score": 17
 	},
 	{
+		"name": "WQD",
+		"score": 16
+	},
+	{
+		"name": "13A",
+		"score": 16
+	},
+	{
+		"name": "125",
+		"score": 14
+	},
+	{
 		"name": "WER",
 		"score": 12
 	},
 	{
+		"name": "231",
+		"score": 10
+	},
+	{
 		"name": "ALE",
 		"score": 8
-	},
-	{
-		"name": "WEA",
-		"score": 4
-	},
-	{
-		"name": "WER",
-		"score": 3
 	}
 ]
 }

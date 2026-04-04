@@ -7,10 +7,12 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Container;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 import io.github.DKICooked.Main;
 import io.github.DKICooked.screen.BaseScreen;
@@ -33,11 +35,15 @@ public class MainMenuScreen extends BaseScreen {
         // 2. KEEP TITLES (Your original logic)
         titleText = new Texture(Gdx.files.internal("toyour.png"));
         subTitleText = new Texture(Gdx.files.internal("Infinity.png"));
+
         Image title = new Image(titleText);
         Image subTitle = new Image(subTitleText);
 
         title.setScaling(Scaling.fit);
         subTitle.setScaling(Scaling.fit);
+
+        Container<Image> subTitleContainer = new Container<>(subTitle);
+        subTitleContainer.setTransform(true);
 
         Table table = new Table();
         table.setFillParent(true);
@@ -45,8 +51,8 @@ public class MainMenuScreen extends BaseScreen {
 
         // KEEP ORIGINAL TITLE SIZING
         table.top().center();
-        table.add(title).width(Gdx.graphics.getWidth() * 0.37f).padBottom(-80).row();
-        table.add(subTitle).width(Gdx.graphics.getWidth() * 0.5f).padBottom(50).row();
+        table.add(title).width(350).padBottom(-80).row();
+        table.add(subTitleContainer).width(500).padBottom(50).row();
 
         // 3. CREATE TEXT BUTTON STYLE
         TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle();
@@ -58,7 +64,6 @@ public class MainMenuScreen extends BaseScreen {
         // 4. DEFINE BUTTONS
         TextButton startButton = new TextButton("START GAME", btnStyle);
         TextButton lbButton    = new TextButton("LEADERBOARD", btnStyle);
-
         TextButton exitButton  = new TextButton("EXIT", btnStyle);
 
         // 5. ADD TO TABLE (Cleaned up padding to avoid overlapping)
@@ -68,6 +73,7 @@ public class MainMenuScreen extends BaseScreen {
         table.add(exitButton).padTop(50).padBottom(10).row();
 
         // 6. KEEP ANIMATION
+        subTitle.setOrigin(Align.center);
         subTitle.addAction(Actions.forever(Actions.sequence(
             Actions.moveBy(0, 10, 0.7f),
             Actions.moveBy(0, -10, 0.7f)
