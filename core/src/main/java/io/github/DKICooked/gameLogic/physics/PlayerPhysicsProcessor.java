@@ -99,6 +99,7 @@ public class PlayerPhysicsProcessor {
 // Wall Collision
 
         for (Platform p : platforms) {
+            if (player.isGhost()) continue;
             float topOfSlab = Math.max(p.y1, p.y2);
             float bottomOfSlab = Math.min(p.y1, p.y2) - p.thickness;
 
@@ -131,6 +132,7 @@ public class PlayerPhysicsProcessor {
         if (!isGrounded) body.applyGravity(dt);
         player.moveBy(0, body.velocityY * dt);
 
+
         boolean groundedThisFrame = false;
         float footY = player.getY();
         float headY = footY + player.getHeight();
@@ -145,11 +147,12 @@ public class PlayerPhysicsProcessor {
                         player.setY(surfaceY);
                         body.velocityY = 0;
                         groundedThisFrame = true;
-
                         player.resetJumps();
-
                         break;
                     }
+
+                    if (player.isGhost()) continue;
+
                     float bottomY = surfaceY - p.thickness;
                     if (body.velocityY > 0 && oldHeadY <= bottomY + 5f && headY >= bottomY) {
                         if (x >= p.x1 && x <= p.x2) {

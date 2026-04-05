@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 public class Platform {
     public float x1, y1, x2, y2;
     public float thickness = 10f;
+    public PowerUpActor.Type powerUpType = null;
 
     public Platform(float x1, float y1, float x2, float y2) {
         this.x1 = x1;

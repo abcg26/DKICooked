@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -82,6 +83,8 @@ public class GameScreen extends BaseScreen {
     private TextButton retryBtn;
     private TextButton quitBtn;
 
+    private Texture ghostTex;
+
     public GameScreen(Main main, String selection) {
         this.main = main;
         this.selection = selection;
@@ -95,6 +98,8 @@ public class GameScreen extends BaseScreen {
         asteroidTex = new Texture(Gdx.files.internal("asteroid.png"));
         this.asteroidManager = new AsteroidManager(asteroidTex);
         this.world = new WorldManager();
+
+        ghostTex = new Texture(Gdx.files.internal("GhostPowerUp.png"));
 
         platformTileTexture = new Texture(Gdx.files.internal("wallTile.jpg"));
         platformTile = new PlatformTiles(platformTileTexture);
@@ -176,6 +181,33 @@ public class GameScreen extends BaseScreen {
 
             if (deathTimer >= DEATH_DURATION) showGameOverScreen();
         }
+
+        for (Actor actor : stage.getActors()) {
+            if (actor instanceof PowerUpActor) {
+                PowerUpActor item = (PowerUpActor) actor;
+
+                // If the player overlaps the item
+                if (player.getCollisionRect().overlaps(item.getBounds())) {
+
+                    // Activate the 6.5s Ghost mode
+                    player.activePowerUp(item.getType());
+
+                    // Remove the item from the screen
+                    item.remove();
+
+                    // (Optional) soundPlayer.playPowerUpSound();
+                }
+            }
+        }
+
+        for (Actor actor : stage.getActors()) {
+            if (actor instanceof PowerUpActor) {
+                // If the item is 800 pixels below the player, delete it to save memory
+                if (actor.getY() < player.getY() - 800) {
+                    actor.remove();
+                }
+            }
+        }
         stage.act(delta);
     }
 
@@ -238,7 +270,8 @@ public class GameScreen extends BaseScreen {
     }
 
     private void checkCollisions() {
-        if (currentState != State.PLAYING) return;
+        if (currentState != State.PLAYING || player.isGhost()) return;
+
         for (var actor : stage.getActors()) {
             if (actor instanceof AsteroidActor meteor) {
                 if (com.badlogic.gdx.math.Intersector.overlaps(meteor.getCollisionCircle(), player.getCollisionRect())) {
@@ -255,6 +288,22 @@ public class GameScreen extends BaseScreen {
         }
     }
 
+    private void checkAndSpawnPowerUps() {
+        for (Platform p : world.getActivePlatforms()) {
+            if (p.powerUpType != null) {
+                System.out.println("SPAWNING GHOST AT: " + p.x1 + ", " + p.y1);
+
+                float centerX = (p.x1 + p.x2) / 2f;
+                float spawnX = centerX - 16; // Assuming 32px wide power-up
+                float spawnY = p.y1 + 8;
+
+                PowerUpActor pUp = new PowerUpActor(p.powerUpType, ghostTex, spawnX, spawnY);
+                stage.addActor(pUp);
+                p.powerUpType = null;
+            }
+        }
+    }
+
     @Override
     public void render(float delta) {
         // 1. Clear the screen
@@ -265,6 +314,7 @@ public class GameScreen extends BaseScreen {
             updateLogic(delta);
             if (currentState == State.PLAYING) {
                 handleAnomalyLogic(delta);
+                checkAndSpawnPowerUps();
             }
         }
 
@@ -302,7 +352,14 @@ public class GameScreen extends BaseScreen {
         for (Platform p : world.getActivePlatforms()) {
             platformTile.render(batch, p);
         }
+
+        if (player.isGhost()) {
+            // Give him a ghostly blue tint and 50% opacity
+            batch.setColor(0.5f, 0.8f, 1f, 0.6f);
+        }
+
         sprite.draw(batch, player);
+        batch.setColor(Color.WHITE);
         batch.end();
 
         // Draw the stage (for actors added to the world stage)
