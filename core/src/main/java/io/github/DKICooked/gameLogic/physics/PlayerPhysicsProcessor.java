@@ -99,6 +99,7 @@ public class PlayerPhysicsProcessor {
 // Wall Collision
 
         for (Platform p : platforms) {
+            if (player.isGhost()) continue;
             float topOfSlab = Math.max(p.y1, p.y2);
             float bottomOfSlab = Math.min(p.y1, p.y2) - p.thickness;
 
@@ -106,12 +107,12 @@ public class PlayerPhysicsProcessor {
                 if(!isGrounded) {
                     if (body.velocityX > 0 && (oldX + player.getWidth()) <= p.x1 && (player.getX() + player.getWidth()) >= p.x1) {
                         player.setX(p.x1 - player.getWidth());
-                        body.velocityX *= -1.3f;
-                        stunTime = 0.3f;
+                        body.velocityX *= 0f;
+                        stunTime = 0.1f;
                     } else if (body.velocityX < -0.1f && oldX >= p.x2 && player.getX() <= p.x2) {
                         player.setX(p.x2);
-                        body.velocityX *= -1.3f;
-                        stunTime = 0.3f;
+                        body.velocityX *= 0f;
+                        stunTime = 0.1f;
                     }
                 } else if (Math.abs(body.velocityY) < 1f) {
                     if (body.velocityX > 0 && (oldX + player.getWidth()) <= p.x1 && (player.getX() + player.getWidth()) >= p.x1) {
@@ -131,6 +132,15 @@ public class PlayerPhysicsProcessor {
         if (!isGrounded) body.applyGravity(dt);
         player.moveBy(0, body.velocityY * dt);
 
+        if (player.hasUfo()) {
+            body.velocityY = 300f;
+
+            player.moveBy(0, body.velocityY * dt);
+
+            isGrounded = false;
+            return;
+        }
+
         boolean groundedThisFrame = false;
         float footY = player.getY();
         float headY = footY + player.getHeight();
@@ -145,16 +155,17 @@ public class PlayerPhysicsProcessor {
                         player.setY(surfaceY);
                         body.velocityY = 0;
                         groundedThisFrame = true;
-
                         player.resetJumps();
-
                         break;
                     }
+
+                    if (player.isGhost()) continue;
+
                     float bottomY = surfaceY - p.thickness;
                     if (body.velocityY > 0 && oldHeadY <= bottomY + 5f && headY >= bottomY) {
                         if (x >= p.x1 && x <= p.x2) {
                             player.setY(bottomY - player.getHeight() - 1f);
-                            body.velocityY = -200f;
+                            body.velocityY = 0;
                             break;
                         }
                     }

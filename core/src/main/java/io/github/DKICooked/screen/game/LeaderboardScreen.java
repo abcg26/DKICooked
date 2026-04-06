@@ -120,7 +120,7 @@ public class LeaderboardScreen extends BaseScreen {
         }
 
         // Bottom dashed line\
-        scoreTable.debug();
+        //scoreTable.debug();
         scoreTable.add(new Label("- - - - - - - - - - - - - - - - - -", headerStyle)).colspan(4).center().padTop(5).row();
 
         // ADD SCORE TABLE TO ROOT

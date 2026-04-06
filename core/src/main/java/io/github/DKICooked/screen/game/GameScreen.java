@@ -12,6 +12,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -19,6 +21,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.DKICooked.Main;
@@ -82,6 +85,21 @@ public class GameScreen extends BaseScreen {
     private TextButton retryBtn;
     private TextButton quitBtn;
 
+    private Texture ghostTex;
+    private Texture ufoTex;
+    private Texture ufoVehicle;
+
+    private float nextAnomalyMinHeight = 0; // The player must reach this height before a new raid can start
+    private static final float BREATHER_DISTANCE = 1500f; // Distance of the "Breather"
+
+    private final Array<Vector2> trailPositions = new Array<>();
+    private static final int MAX_TRAIL_SAMPLES = 10;
+
+    private float stuckTimer = 0;
+    private float lastRecordedHeight = 0;
+    private boolean pitySpawned = false;
+    private static final float STUCK_THRESHOLD = 20f; // 20 seconds
+
     public GameScreen(Main main, String selection) {
         this.main = main;
         this.selection = selection;
@@ -95,6 +113,10 @@ public class GameScreen extends BaseScreen {
         asteroidTex = new Texture(Gdx.files.internal("asteroid.png"));
         this.asteroidManager = new AsteroidManager(asteroidTex);
         this.world = new WorldManager();
+
+        ghostTex = new Texture(Gdx.files.internal("GhostPowerUp.png"));
+        ufoTex = new Texture(Gdx.files.internal("UfoPowerUp.png"));
+        ufoVehicle = new Texture(Gdx.files.internal("ufoV1.png"));
 
         platformTileTexture = new Texture(Gdx.files.internal("wallTile.jpg"));
         platformTile = new PlatformTiles(platformTileTexture);
@@ -176,6 +198,61 @@ public class GameScreen extends BaseScreen {
 
             if (deathTimer >= DEATH_DURATION) showGameOverScreen();
         }
+
+        if (Math.abs(player.getY() - lastRecordedHeight) < 50f) {
+            stuckTimer += delta;
+        } else {
+            // Player moved up! Reset everything
+            stuckTimer = 0;
+            lastRecordedHeight = player.getY();
+            pitySpawned = false;
+        }
+
+        // 2. If stuck for 20 seconds and we haven't given them a gift yet...
+        if (stuckTimer >= STUCK_THRESHOLD && !pitySpawned) {
+            spawnPityPowerUp();
+            pitySpawned = true; // Only spawn one per "stuck" session
+        }
+
+        for (Actor actor : stage.getActors()) {
+            if (actor instanceof PowerUpActor) {
+                PowerUpActor item = (PowerUpActor) actor;
+
+                // If the player overlaps the item
+                if (player.getCollisionRect().overlaps(item.getBounds())) {
+
+                    // Activate the 6.5s Ghost mode
+                    player.activePowerUp(item.getType());
+
+                    // Remove the item from the screen
+                    item.remove();
+
+                    // (Optional) soundPlayer.playPowerUpSound();
+                }
+            }
+        }
+
+        for (Actor actor : stage.getActors()) {
+            if (actor instanceof PowerUpActor) {
+                // If the item is 800 pixels below the player, delete it to save memory
+                if (actor.getY() < player.getY() - 800) {
+                    actor.remove();
+                }
+            }
+        }
+
+        if (player.hasUfo()) {
+            // Record current position
+            trailPositions.insert(0, new Vector2(player.getX() - 20, player.getY() - 10));
+
+            // Keep the list short
+            if (trailPositions.size > MAX_TRAIL_SAMPLES) {
+                trailPositions.removeIndex(trailPositions.size - 1);
+            }
+        } else {
+            // Clear trail when UFO is gone
+            trailPositions.clear();
+        }
         stage.act(delta);
     }
 
@@ -238,7 +315,8 @@ public class GameScreen extends BaseScreen {
     }
 
     private void checkCollisions() {
-        if (currentState != State.PLAYING) return;
+        if (currentState != State.PLAYING || player.isGhost()) return;
+
         for (var actor : stage.getActors()) {
             if (actor instanceof AsteroidActor meteor) {
                 if (com.badlogic.gdx.math.Intersector.overlaps(meteor.getCollisionCircle(), player.getCollisionRect())) {
@@ -254,6 +332,66 @@ public class GameScreen extends BaseScreen {
             }
         }
     }
+    private void spawnPityPowerUp() {
+        System.out.println("PITY SYSTEM: Player is stuck! Finding a spot for help...");
+
+        Platform targetPlatform = null;
+        float closestDist = Float.MAX_VALUE;
+
+        // 1. Find the best platform ABOVE the player
+        for (Platform p : world.getActivePlatforms()) {
+            float dist = p.y1 - player.getY();
+            // Look for platforms between 0 and 400 pixels above the player
+            if (dist > 0 && dist < 400) {
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    targetPlatform = p;
+                }
+            }
+        }
+
+        // 2. Decide what to spawn
+        PowerUpActor.Type type = MathUtils.randomBoolean() ?
+            PowerUpActor.Type.GHOST :
+            PowerUpActor.Type.UFO_RIDE;
+        Texture tex = (type == PowerUpActor.Type.UFO_RIDE) ? ufoTex : ghostTex;
+
+        PowerUpActor pUp;
+
+        if (targetPlatform != null) {
+            // Option A: Found a platform! Place it there.
+            float centerX = (targetPlatform.x1 + targetPlatform.x2) / 2f;
+            pUp = new PowerUpActor(type, tex, centerX - 16, targetPlatform.y1 + 15);
+            System.out.println("Pity item spawned on platform at Y: " + targetPlatform.y1);
+        } else {
+            // Option B: No platform found? Spawn it in the air above the player.
+            pUp = new PowerUpActor(type, tex, player.getX(), player.getY() + 250);
+            System.out.println("Pity item spawned in mid-air!");
+        }
+
+        // 3. Add to stage and apply the "Bounce In" animation
+        pUp.setScale(0); // Start tiny
+        stage.addActor(pUp);
+        pUp.addAction(Actions.scaleTo(1, 1, 0.6f, com.badlogic.gdx.math.Interpolation.bounceOut));
+    }
+
+    private void checkAndSpawnPowerUps() {
+        for (Platform p : world.getActivePlatforms()) {
+            if (p.powerUpType != null) {
+                System.out.println("SPAWNING: " + p.powerUpType);
+
+                Texture currentPU = (p.powerUpType == PowerUpActor.Type.UFO_RIDE) ? ufoTex : ghostTex;
+
+                float centerX = (p.x1 + p.x2) / 2f;
+                float spawnX = centerX - 16; // Assuming 32px wide power-up
+                float spawnY = p.y1 + 8;
+
+                PowerUpActor pUp = new PowerUpActor(p.powerUpType, currentPU, spawnX, spawnY);
+                stage.addActor(pUp);
+                p.powerUpType = null;
+            }
+        }
+    }
 
     @Override
     public void render(float delta) {
@@ -265,6 +403,7 @@ public class GameScreen extends BaseScreen {
             updateLogic(delta);
             if (currentState == State.PLAYING) {
                 handleAnomalyLogic(delta);
+                checkAndSpawnPowerUps();
             }
         }
 
@@ -281,7 +420,14 @@ public class GameScreen extends BaseScreen {
             (activeRaid == RaidType.NONE && lastActiveRaid == RaidType.MAGNETIC_STORM);
 
         if (isEffectivelyMagnetic && backgroundTintAlpha > 0) {
-            batch.setColor(msManger.getStormTint(backgroundTintAlpha));
+            Color stormColor = msManger.getStormTint(backgroundTintAlpha);
+            // Linear interpolation between white (1,1,1) and storm color based on alpha
+            batch.setColor(
+                1f - (1f - stormColor.r) * backgroundTintAlpha,
+                1f - (1f - stormColor.g) * backgroundTintAlpha,
+                1f - (1f - stormColor.b) * backgroundTintAlpha,
+                1f
+            );
         } else {
             float currentGreenBlue = 1f - (backgroundTintAlpha * 0.7f);
             batch.setColor(1f, currentGreenBlue, currentGreenBlue, 1f);
@@ -295,25 +441,63 @@ public class GameScreen extends BaseScreen {
 
         batch.setColor(Color.WHITE);
         batch.end();
-
+       // stage.setDebugAll(true);
         // 5. Game World Rendering (Platforms and Player)
         batch.setProjectionMatrix(stage.getCamera().combined);
         batch.begin();
         for (Platform p : world.getActivePlatforms()) {
             platformTile.render(batch, p);
         }
-        sprite.draw(batch, player);
+
+        if (player.isGhost()) {
+            // Give him a ghostly blue tint and 50% opacity
+            batch.setColor(0.5f, 0.8f, 1f, 0.6f);
+        }
+
+        if (player.hasUfo()) {
+            for (int i = 0; i < trailPositions.size; i++) {
+                Vector2 pos = trailPositions.get(i);
+
+                // Calculate transparency: further back = more faded
+                // (1.0 is the main ship, so we start trail at 0.5 and go down)
+                float alpha = 0.5f * (1f - (float) i / MAX_TRAIL_SAMPLES);
+
+                // Give it a "blue energy" tint
+                batch.setColor(0.4f, 0.7f, 1f, alpha);
+
+                // Draw the ghost UFO
+                batch.draw(ufoVehicle, pos.x, pos.y, 80, 50);
+            }
+
+            batch.setColor(Color.WHITE);
+            batch.draw(ufoVehicle, player.getX() - 20, player.getY() - 10, 80, 50);
+        }
+
+        if (!player.hasUfo()) {
+            if (player.isGhost()) {
+                batch.setColor(0.5f, 0.8f, 1f, 0.6f); // Ghostly transparency
+            } else {
+                batch.setColor(Color.WHITE);
+            }
+
+            // Draw the actual character
+            sprite.draw(batch, player);
+        }
+
+        batch.setColor(Color.WHITE);
         batch.end();
 
         // Draw the stage (for actors added to the world stage)
         stage.draw();
 
         // 6. Effects (Magnetic Glitch)
-        if (isEffectivelyMagnetic && backgroundTintAlpha > 0) {
-            batch.setProjectionMatrix(uiStage.getCamera().combined);
-            batch.begin();
-            msManger.drawGlitch(batch, backgroundTintAlpha);
-            batch.end();
+        if (backgroundTintAlpha > 0) {
+            // We check if the raid IS or WAS a magnetic storm
+            if (activeRaid == RaidType.MAGNETIC_STORM || lastActiveRaid == RaidType.MAGNETIC_STORM) {
+                batch.setProjectionMatrix(uiStage.getCamera().combined);
+                // Note: Batch begin/end is handled inside msManger.drawGlitch
+                msManger.drawGlitch(batch, backgroundTintAlpha);
+            }
         }
 
         // 7. Anomaly Text Pulse
@@ -336,23 +520,33 @@ public class GameScreen extends BaseScreen {
 
     private void handleAnomalyLogic(float delta) {
         float py = player.getY();
-        if (py >= 1500 && activeRaid == RaidType.NONE) {
+        if (activeRaid == RaidType.NONE && py >= 1500 && py >= nextAnomalyMinHeight) {
             int choice = MathUtils.random(1, 3);
             if (choice == 1) activeRaid = RaidType.ASTEROIDS;
             else if (choice == 2) activeRaid = RaidType.UFO;
             else activeRaid = RaidType.MAGNETIC_STORM;
-            raidEndHeight = py + 2000f;
+
+            raidEndHeight = py + 2000f; // Raid lasts for 2000 units
         }
 
         if (activeRaid != RaidType.NONE) {
             backgroundTintAlpha += delta * FADE_SPEED;
             if (backgroundTintAlpha > 1f) backgroundTintAlpha = 1f;
+
             if (activeRaid == RaidType.ASTEROIDS) asteroidManager.update(delta, py, stage);
             else if (activeRaid == RaidType.UFO) ufoManager.update(delta, stage);
             else if (activeRaid == RaidType.MAGNETIC_STORM) msManger.update(delta, stage);
-            if (py >= raidEndHeight || py < 1500) stopAllRaids();
+
+            // Check if the raid should END
+            if (py >= raidEndHeight) {
+                stopAllRaids();
+                // SET THE BREATHER HERE:
+                // The next raid cannot start until the player climbs another 1500 units
+                nextAnomalyMinHeight = py + BREATHER_DISTANCE;
+            }
         } else {
-            backgroundTintAlpha -= delta * FADE_SPEED;
+            // 3. Fading out the effects after a raid ends
+            backgroundTintAlpha -= delta * FADE_SPEED; // Gradually goes from 1 to 0
             if (backgroundTintAlpha <= 0f) {
                 backgroundTintAlpha = 0f;
                 lastActiveRaid = RaidType.NONE;

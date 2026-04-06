@@ -3,6 +3,7 @@ package io.github.DKICooked.gameLogic.generationLogic;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import io.github.DKICooked.entities.Platform;
+import io.github.DKICooked.entities.PowerUpActor;
 
 public class LevelGenerator {
 
@@ -66,6 +67,15 @@ public class LevelGenerator {
             float cy = node[1];
             Platform p = new Platform(cx - PLATFORM_HALF, cy, cx + PLATFORM_HALF, cy);
             p.thickness = MathUtils.randomBoolean(0.3f) ? TILE_SIZE * 1.5f : TILE_SIZE;
+
+            if (MathUtils.randomBoolean(0.12f)) {
+                // Flip a coin: heads it's a Ghost, tails it's a UFO
+                if (MathUtils.randomBoolean()) {
+                    p.powerUpType = PowerUpActor.Type.GHOST;
+                } else {
+                    p.powerUpType = PowerUpActor.Type.UFO_RIDE;
+                }
+            }
             platforms.add(p);
         }
 

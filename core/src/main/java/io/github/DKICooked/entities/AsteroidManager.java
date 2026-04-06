@@ -10,7 +10,7 @@ public class AsteroidManager {
     private boolean isRaidActive = false;
     private Texture asteroidTex;
 
-    private final float CALM_TIME = 10f; // Seconds of peace
+    private final float CALM_TIME = 3f; // Seconds of peace
     private final float RAID_TIME = 15f; // Seconds of falling rocks
 
     public AsteroidManager(Texture texture) {
@@ -19,16 +19,16 @@ public class AsteroidManager {
     public void update(float delta, float playerHeight, Stage stage) {
         // Only run for the first 3 stages (Stage 1: 0-30m, Stage 2: 30-60m, Stage 3: 60-90m)
         // 9000 pixels is roughly 90 meters in LibGDX world units.
-        if (playerHeight < 1500 || playerHeight > 9000) {
-            // If we aren't in the "Danger Zone," reset the timers so the
-            // raid starts fresh the moment we hit 15m.
-            if (raidDuration != 0) {
-                System.out.println("DEBUG: Outside Asteroid Zone - Resetting Timers");
-                raidDuration = 0;
-                isRaidActive = false;
-            }
-            return;
-        }
+//        if (playerHeight < 1500 || playerHeight > 9000) {
+//            // If we aren't in the "Danger Zone," reset the timers so the
+//            // raid starts fresh the moment we hit 15m.
+//            if (raidDuration != 0) {
+//                System.out.println("DEBUG: Outside Asteroid Zone - Resetting Timers");
+//                raidDuration = 0;
+//                isRaidActive = false;
+//            }
+//            return;
+//        }
 
         // raidDuration is our master clock for the phase cycle
         raidDuration += delta;
@@ -36,7 +36,7 @@ public class AsteroidManager {
         if (isRaidActive) {
             handleRaid(delta, playerHeight, stage);
         } else {
-            handleCalm();
+            handleCalm(delta);
         }
     }
 
@@ -72,7 +72,7 @@ public class AsteroidManager {
         }
     }
 
-    private void handleCalm() {
+    private void handleCalm(float delta) {
         // Switch to RAID after 10 seconds
         if (raidDuration >= CALM_TIME) {
             isRaidActive = true;
