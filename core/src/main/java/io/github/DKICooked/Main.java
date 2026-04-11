@@ -6,6 +6,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
+import io.github.DKICooked.screen.main.IntroScreen;
 import io.github.DKICooked.screen.main.MainMenuScreen;
 
 
@@ -20,7 +21,7 @@ public class Main extends ApplicationAdapter {
     public void create() {
         batch = new SpriteBatch();
 
-        setScreen(new MainMenuScreen(this));
+        setScreen(new IntroScreen(this));
     }
 
     @Override

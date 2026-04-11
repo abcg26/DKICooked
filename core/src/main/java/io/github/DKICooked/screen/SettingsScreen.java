@@ -75,8 +75,12 @@ public class SettingsScreen extends BaseScreen {
         table.setFillParent(true); //
 
         Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
+        Texture set = new Texture(Gdx.files.internal("set.png"));
 
+        Image setImg = new Image(set);
         // MUSIC SLIDER
+
+        table.center();
         Label musicLabel = new Label("BGM VOLUME", labelStyle);
         final Slider musicSlider = new Slider(0f, 1f, 0.05f, false, sliderSkin);
         musicSlider.setValue(SoundPlayer.bgmVolume);
@@ -102,7 +106,8 @@ public class SettingsScreen extends BaseScreen {
         TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle();
         btnStyle.font = font;
         btnStyle.fontColor = Color.valueOf("f8c72c"); //
-        TextButton backBtn = new TextButton("BACK TO MENU", btnStyle);
+        btnStyle.overFontColor = Color.valueOf("#ef901f");
+        TextButton backBtn = new TextButton("BACK", btnStyle);
         backBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -111,7 +116,7 @@ public class SettingsScreen extends BaseScreen {
         });
 
         // Add to layout
-        table.add(new Label("SETTINGS", labelStyle)).padBottom(40).row();
+        table.add(setImg).size(300, 60).padBottom(40).row();
         table.add(musicLabel).padBottom(10).row();
         table.add(musicSlider).width(200).height(40).padBottom(30).row();
         table.add(sfxLabel).padBottom(10).row();
