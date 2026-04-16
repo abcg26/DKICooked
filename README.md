@@ -46,7 +46,7 @@ This project is designed as an educational resource for:
 
 ## Installation & Setup
 1. Navigate to the Releases section of this repository.
-2. Download ToYourInfinity-1.0.exe.
+2. Download ToYourInfinity_Setup.exe.
 3. Run the installer and follow the Setup Wizard instructions.
 4. Launch the game via the desktop shortcut or the Start menu.
 
